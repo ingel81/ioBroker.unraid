@@ -1,8 +1,21 @@
 {
   "common": {
     "name": "unraid",
-    "version": "0.6.1",
+    "version": "0.6.2-alpha.0",
     "news": {
+      "0.6.2-alpha.0": {
+        "en": "npm deployment adjusted",
+        "de": "npm-bereitstellung angepasst",
+        "ru": "npm развертывание скорректировано",
+        "pt": "implantação npm ajustada",
+        "nl": "npm implementatie aangepast",
+        "fr": "npm de déploiement ajusté",
+        "it": "npm implementazione regolata",
+        "es": "npm deployment adjusted",
+        "pl": "npm dopasowane",
+        "uk": "npm розгортання регульовано",
+        "zh-cn": "npm 部署调整"
+      },
       "0.6.1": {
         "en": "fix: Use themecolors in settings",
         "de": "fix: Verwenden Sie Themecolors in Einstellungen",
@@ -80,19 +93,6 @@
         "pl": "Więcej pytań: Kontenery dokujące, akcje, maszyny wirtualne, dyski tablicowe z dynamicznym tworzeniem stanu,\nMigracja klienta Apollo",
         "uk": "Більше запитів: Docker контейнери, акції, VMs, масивні диски з динамічним створенням стану,\nАполлонська міграція клієнтів",
         "zh-cn": "更多未发现的查询 : 挂载容器、 股份、 VM、 具有动态状态创建的阵列磁盘,\n阿波罗客户端迁移"
-      },
-      "0.4.1": {
-        "en": "Documentation",
-        "de": "Dokumentation",
-        "ru": "Документация",
-        "pt": "Documentação",
-        "nl": "Documentatie",
-        "fr": "Documentation",
-        "it": "Documentazione",
-        "es": "Documentación",
-        "pl": "Dokumentacja",
-        "uk": "Документація",
-        "zh-cn": "文档"
       }
     },
     "titleLang": {
