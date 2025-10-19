@@ -27,7 +27,7 @@ export interface ApolloClientOptions {
  */
 export class UnraidApolloClient {
     /** Apollo Client instance for GraphQL operations */
-    private client: ApolloClient<unknown>;
+    private client: ApolloClient;
     /** WebSocket client for subscription support */
     private wsClient: ReturnType<typeof createClient>;
     /** Base URL of the Unraid server */
@@ -137,7 +137,7 @@ export class UnraidApolloClient {
         const result = await this.client.query<T>({
             query: gql(query),
         });
-        return result.data;
+        return result.data as T;
     }
 
     /**
