@@ -88,6 +88,11 @@ The adapter creates a structured tree of objects for the monitored data:
   Placeholder for the next version (at the beginning of the line):
   ### **WORK IN PROGRESS**
 -->
+
+### **WORK IN PROGRESS**
+
+- (ingel81) npm deployment adjusted
+
 ### 0.6.1 (2025-09-28)
 
 - (ingel81) fix: Use themecolors in settings
