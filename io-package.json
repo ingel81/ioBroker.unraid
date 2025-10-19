@@ -1,8 +1,21 @@
 {
   "common": {
     "name": "unraid",
-    "version": "0.6.2-alpha.1",
+    "version": "0.6.2",
     "news": {
+      "0.6.2": {
+        "en": "dependencies updated",
+        "de": "aktualisierte abhängigkeiten",
+        "ru": "обновленные зависимости",
+        "pt": "dependências atualizadas",
+        "nl": "afhankelijkheden bijgewerkt",
+        "fr": "dépendances mises à jour",
+        "it": "dipendenze aggiornate",
+        "es": "dependencias actualizadas",
+        "pl": "zaktualizowane zależności",
+        "uk": "оновлені залежності",
+        "zh-cn": "更新依赖关系"
+      },
       "0.6.2-alpha.1": {
         "en": "npm deployment adjusted pt.2",
         "de": "npm bereitstellung angepasst pt.2",
@@ -80,19 +93,6 @@
         "pl": "Dokumentacja\nNiewielkie ulepszenia strony administratora",
         "uk": "Документація\nНормативно-правова база",
         "zh-cn": "文档\n小管理页面改进"
-      },
-      "0.5.1": {
-        "en": "ESLint9 Migration\nCode refactor",
-        "de": "ESLint9 Migration\nCode-Refacter",
-        "ru": "ESLint9 Миграция\nКод-фактор",
-        "pt": "Migração ESLint9\nRefactor de código",
-        "nl": "ESLint9 Migratie\nCode-refactor",
-        "fr": "ESLint9 Migration\nRefacteur de code",
-        "it": "ESLint9 Migrazione\nCodice",
-        "es": "Migración ESLint9\nCode refactor",
-        "pl": "ESLint9 Migracja\nReczynnik kodu",
-        "uk": "ESLint9 Міграція\nРефактор коду",
-        "zh-cn": "ESLint9 迁移\n代码重构"
       }
     },
     "titleLang": {

@@ -88,8 +88,7 @@ The adapter creates a structured tree of objects for the monitored data:
   Placeholder for the next version (at the beginning of the line):
   ### **WORK IN PROGRESS**
 -->
-
-### **WORK IN PROGRESS**
+### 0.6.2 (2025-10-19)
 
 - (ingel81) dependencies updated
 
