@@ -101,7 +101,7 @@ export class StateManager {
         });
         this.createdStates.add(id);
 
-        const normalizedValue = value === undefined ? null : (value as ioBroker.StateValue | null);
+        const normalizedValue = value === undefined ? null : (value as ioBroker.StateValue);
         await this.adapter.setStateAsync(id, normalizedValue, true);
     }
 
@@ -112,7 +112,7 @@ export class StateManager {
      * @param value - State value to set
      */
     async updateState(id: string, value: unknown): Promise<void> {
-        const normalizedValue = value === undefined ? null : (value as ioBroker.StateValue | null);
+        const normalizedValue = value === undefined ? null : (value as ioBroker.StateValue);
         await this.adapter.setStateAsync(id, normalizedValue, true);
     }
 
