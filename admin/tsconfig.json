@@ -6,13 +6,11 @@
         "noEmit": false,
         "outDir": "./build",
         "sourceMap": true,
-        "sourceRoot": "./src",
-        "noImplicitAny": false,
-        "allowJs": false,
-        "checkJs": false,
-        "lib": ["ES2018", "DOM"],
-        "jsx": "react"
+        "lib": ["ES2020", "DOM", "DOM.Iterable"],
+        "jsx": "react-jsx",
+        "module": "ES2020",
+        "moduleResolution": "bundler",
+        "target": "ES2020"
     },
-    "include": ["./**/*.d.ts", "./**/*.ts", "./**/*.tsx", "../lib/adapter-config.d.ts"],
-    "exclude": ["./**/*.test.ts", "./**/*.test.tsx"]
+    "include": ["./**/*.d.ts", "./**/*.ts", "./**/*.tsx", "../lib/adapter-config.d.ts"]
 }

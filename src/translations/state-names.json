@@ -220,6 +220,45 @@
     "uk": "Ядра ЦПУ",
     "zh-cn": "CPU核心"
   },
+  "metrics.cpu.packages": {
+    "en": "CPU Packages",
+    "de": "CPU-Pakete",
+    "ru": "Пакеты ЦПУ",
+    "pt": "Pacotes da CPU",
+    "nl": "CPU-pakketten",
+    "fr": "Packages CPU",
+    "it": "Pacchetti CPU",
+    "es": "Paquetes de CPU",
+    "pl": "Pakiety CPU",
+    "uk": "Пакети ЦПУ",
+    "zh-cn": "CPU封装"
+  },
+  "metrics.cpu.packages.totalPower": {
+    "en": "Total Power",
+    "de": "Gesamtleistung",
+    "ru": "Общая мощность",
+    "pt": "Potência total",
+    "nl": "Totaal vermogen",
+    "fr": "Puissance totale",
+    "it": "Potenza totale",
+    "es": "Potencia total",
+    "pl": "Moc całkowita",
+    "uk": "Загальна потужність",
+    "zh-cn": "总功率"
+  },
+  "power": {
+    "en": "Power",
+    "de": "Leistung",
+    "ru": "Мощность",
+    "pt": "Potência",
+    "nl": "Vermogen",
+    "fr": "Puissance",
+    "it": "Potenza",
+    "es": "Potencia",
+    "pl": "Moc",
+    "uk": "Потужність",
+    "zh-cn": "功率"
+  },
   "metrics.memory": {
     "en": "Memory",
     "de": "Arbeitsspeicher",

@@ -444,6 +444,20 @@ const domainDefinitionsList: readonly DomainDefinition[] = [
                     },
                 ],
             },
+            {
+                root: 'info',
+                fields: [
+                    {
+                        name: 'cpu',
+                        selection: [
+                            {
+                                name: 'packages',
+                                selection: [{ name: 'totalPower' }, { name: 'power' }, { name: 'temp' }],
+                            },
+                        ],
+                    },
+                ],
+            },
         ],
         states: [
             {

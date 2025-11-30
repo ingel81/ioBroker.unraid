@@ -17,6 +17,9 @@ class DynamicResourceManager {
     // Dynamic CPU core tracking
     cpuCoresDetected = false;
     cpuCoreCount = 0;
+    // Dynamic CPU package tracking
+    cpuPackagesDetected = false;
+    cpuPackageCount = 0;
     // Dynamic array disk tracking
     arrayDisksDetected = false;
     diskCount = 0;
@@ -59,6 +62,8 @@ class DynamicResourceManager {
         if (!selectedDomains.has('metrics.cpu')) {
             this.cpuCoresDetected = false;
             this.cpuCoreCount = 0;
+            this.cpuPackagesDetected = false;
+            this.cpuPackageCount = 0;
         }
         if (!selectedDomains.has('array.disks') &&
             !selectedDomains.has('array.parities') &&
@@ -133,6 +138,57 @@ class DynamicResourceManager {
                 resourceMap.set(String(i), { index: i });
             }
             await this.objectManager.handleDynamicResources('cpu', resourceMap);
+        }
+    }
+    /**
+     * Handle dynamic CPU package state creation and updates
+     *
+     * @param data - Unraid data containing CPU package metrics
+     * @param selectedDomains - Set of selected domain IDs
+     */
+    async handleDynamicCpuPackages(data, selectedDomains) {
+        if (!selectedDomains.has('metrics.cpu')) {
+            return;
+        }
+        // packages data comes from info.cpu.packages (not metrics.cpu)
+        const info = data.info;
+        if (!info?.cpu?.packages) {
+            return;
+        }
+        const packages = info.cpu.packages;
+        const powerArray = Array.isArray(packages.power) ? packages.power : [];
+        const tempArray = Array.isArray(packages.temp) ? packages.temp : [];
+        const packageCount = Math.max(powerArray.length, tempArray.length);
+        // Create CPU package states on first detection or if package count changed
+        if (!this.cpuPackagesDetected || this.cpuPackageCount !== packageCount) {
+            this.cpuPackageCount = packageCount;
+            this.cpuPackagesDetected = true;
+            this.adapter.log.info(`Detected ${packageCount} CPU packages, creating states...`);
+            // Create package count state
+            await this.stateManager.writeState('metrics.cpu.packages.count', { type: 'number', role: 'value', unit: '' }, packageCount);
+            // Create total power state
+            await this.stateManager.writeState('metrics.cpu.packages.totalPower', { type: 'number', role: 'value.power', unit: 'W' }, null);
+            // Create states for each CPU package
+            for (let i = 0; i < packageCount; i++) {
+                const packagePrefix = `metrics.cpu.packages.${i}`;
+                await this.stateManager.writeState(`${packagePrefix}.power`, { type: 'number', role: 'value.power', unit: 'W' }, null);
+                await this.stateManager.writeState(`${packagePrefix}.temp`, { type: 'number', role: 'value.temperature', unit: '°C' }, null);
+            }
+        }
+        // Update CPU package values
+        await this.stateManager.updateState('metrics.cpu.packages.totalPower', (0, data_transformers_1.toNumberOrNull)(packages.totalPower));
+        for (let i = 0; i < packageCount; i++) {
+            const packagePrefix = `metrics.cpu.packages.${i}`;
+            await this.stateManager.updateState(`${packagePrefix}.power`, (0, data_transformers_1.toNumberOrNull)(powerArray[i]));
+            await this.stateManager.updateState(`${packagePrefix}.temp`, (0, data_transformers_1.toNumberOrNull)(tempArray[i]));
+        }
+        // Sync with ObjectManager
+        if (this.objectManager) {
+            const resourceMap = new Map();
+            for (let i = 0; i < packageCount; i++) {
+                resourceMap.set(String(i), { index: i });
+            }
+            await this.objectManager.handleDynamicResources('cpuPackage', resourceMap);
         }
     }
     /**

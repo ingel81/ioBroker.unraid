@@ -175,6 +175,7 @@ class UnraidAdapter extends Adapter {
 
         // Handle dynamic resources
         await this.dynamicResourceManager.handleDynamicCpuCores(data, this.effectiveSelection);
+        await this.dynamicResourceManager.handleDynamicCpuPackages(data, this.effectiveSelection);
         await this.dynamicResourceManager.handleDynamicArrayDisks(data, this.effectiveSelection);
         await this.dynamicResourceManager.handleDynamicDockerContainers(data, this.effectiveSelection);
         await this.dynamicResourceManager.handleDynamicShares(data, this.effectiveSelection);

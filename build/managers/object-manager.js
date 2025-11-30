@@ -227,6 +227,10 @@ class ObjectManager {
                 newName = `Core ${parts[3]}`;
                 checkedCount++;
             }
+            else if (relativeId.startsWith('metrics.cpu.packages.') && parts.length === 4) {
+                newName = `Package ${parts[3]}`;
+                checkedCount++;
+            }
             // Update the channel name if it's different
             if (newName && obj.common?.name !== newName) {
                 // Use setObject to update the name
@@ -262,6 +266,8 @@ class ObjectManager {
         switch (resourceType) {
             case 'cpu':
                 return 'metrics.cpu.cores';
+            case 'cpuPackage':
+                return 'metrics.cpu.packages';
             case 'disk':
                 return 'array.disks';
             case 'docker':

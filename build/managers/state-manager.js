@@ -208,6 +208,9 @@ class StateManager {
             else if (channelId.startsWith('metrics.cpu.cores.') && index === 4) {
                 name = `Core ${parts[3]}`;
             }
+            else if (channelId.startsWith('metrics.cpu.packages.') && index === 4) {
+                name = `Package ${parts[3]}`;
+            }
             // Always update the object to ensure the name is correct
             // This will create it if it doesn't exist, or update it if it does
             await this.adapter.setObjectAsync(channelId, {

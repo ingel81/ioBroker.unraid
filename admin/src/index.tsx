@@ -1,30 +1,37 @@
 import React from 'react';
-import ReactDOM from 'react-dom';
-import { MuiThemeProvider } from '@material-ui/core/styles';
-import theme from '@iobroker/adapter-react/Theme';
-import Utils from '@iobroker/adapter-react/Components/Utils';
-import App from './app';
+import { createRoot, type Root } from 'react-dom/client';
+import { ThemeProvider, StyledEngineProvider } from '@mui/material/styles';
+import { Theme, Utils, type ThemeName } from '@iobroker/adapter-react-v5';
+import App from './App';
 
 let themeName = Utils.getThemeName();
+let root: Root | null = null;
 
-const renderApp = (): void => {
-    const rootElement = document.getElementById('root');
-    if (!rootElement) {
-        throw new Error('root element not found');
+function build(): void {
+    const container = document.getElementById('root');
+    if (!container) {
+        console.error('Root element not found');
+        return;
     }
 
-    ReactDOM.render(
-        <MuiThemeProvider theme={theme(themeName)}>
-            <App
-                adapterName="unraid"
-                onThemeChange={(nextTheme: string) => {
-                    themeName = nextTheme;
-                    renderApp();
-                }}
-            />
-        </MuiThemeProvider>,
-        rootElement,
-    );
-};
+    // Only create root once
+    if (!root) {
+        root = createRoot(container);
+    }
 
-renderApp();
+    root.render(
+        <StyledEngineProvider injectFirst>
+            <ThemeProvider theme={Theme(themeName)}>
+                <App
+                    adapterName="unraid"
+                    onThemeChange={(newThemeName: ThemeName) => {
+                        themeName = newThemeName;
+                        build();
+                    }}
+                />
+            </ThemeProvider>
+        </StyledEngineProvider>,
+    );
+}
+
+build();

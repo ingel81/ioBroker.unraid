@@ -1,9 +1,6 @@
 import React from 'react';
-
-import GenericApp from '@iobroker/adapter-react/GenericApp';
-import type { GenericAppProps } from '@iobroker/adapter-react/types';
-
-import Settings from './components/settings';
+import { GenericApp, type GenericAppProps, type GenericAppSettings } from '@iobroker/adapter-react-v5';
+import Settings from './components/Settings';
 import en from './i18n/en.json';
 import de from './i18n/de.json';
 import ru from './i18n/ru.json';
@@ -16,14 +13,11 @@ import pl from './i18n/pl.json';
 import zhCn from './i18n/zh-cn.json';
 
 /**
- * Application properties type alias
- */
-type AppProps = GenericAppProps;
-
-/**
  * Translation structure for internationalization
  */
-type BaseTranslations = Record<string, Record<string, string>>;
+interface Translations {
+    [lang: string]: Record<string, string>;
+}
 
 /**
  * Main application component for the Unraid adapter configuration.
@@ -35,24 +29,22 @@ class App extends GenericApp {
      *
      * @param props - Application properties from ioBroker
      */
-    public constructor(props: AppProps) {
-        const baseTranslations: BaseTranslations = {
-            en,
-            de,
-            ru,
-            pt,
-            nl,
-            fr,
-            it,
-            es,
-            pl,
-            'zh-cn': zhCn,
-        };
-
-        const extendedProps: GenericAppProps = {
+    constructor(props: GenericAppProps) {
+        const extendedProps: GenericAppSettings = {
             ...props,
             encryptedFields: [],
-            translations: baseTranslations,
+            translations: {
+                en,
+                de,
+                ru,
+                pt,
+                nl,
+                fr,
+                it,
+                es,
+                pl,
+                'zh-cn': zhCn,
+            } as Translations,
         };
 
         super(props, extendedProps);
@@ -62,7 +54,7 @@ class App extends GenericApp {
      * Callback when ioBroker connection is established.
      * Override this to perform initialization tasks.
      */
-    public onConnectionReady(): void {
+    onConnectionReady(): void {
         // executed when connection is ready
     }
 
@@ -71,7 +63,7 @@ class App extends GenericApp {
      *
      * @returns The main application JSX element
      */
-    public render(): JSX.Element {
+    render(): React.JSX.Element {
         if (!this.state.loaded) {
             return super.render();
         }

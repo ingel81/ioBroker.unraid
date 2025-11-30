@@ -1702,6 +1702,19 @@ type CpuLoad {
   percentSteal: Float!
 }
 
+type CpuPackages implements Node {
+  id: PrefixedID!
+
+  """Total CPU package power draw (W)"""
+  totalPower: Float!
+
+  """Power draw per package (W)"""
+  power: [Float!]!
+
+  """Temperature per package (°C)"""
+  temp: [Float!]!
+}
+
 type CpuUtilization implements Node {
   id: PrefixedID!
 
@@ -1765,6 +1778,12 @@ type InfoCpu implements Node {
 
   """CPU feature flags"""
   flags: [String!]
+
+  """
+  Per-package array of core/thread pairs, e.g. [[[0,1],[2,3]], [[4,5],[6,7]]]
+  """
+  topology: [[[Int!]!]!]!
+  packages: CpuPackages!
 }
 
 type MemoryLayout implements Node {
@@ -3342,6 +3361,14 @@ type Subscription {
   - Resource: **INFO**
   """
   systemMetricsCpu: CpuUtilization!
+
+  """
+  #### Required Permissions:
+  
+  - Action: **READ_ANY**
+  - Resource: **INFO**
+  """
+  systemMetricsCpuTelemetry: CpuPackages!
 
   """
   #### Required Permissions:

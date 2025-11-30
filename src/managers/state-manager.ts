@@ -222,6 +222,8 @@ export class StateManager {
                 name = `Cache ${parts[2]}`;
             } else if (channelId.startsWith('metrics.cpu.cores.') && index === 4) {
                 name = `Core ${parts[3]}`;
+            } else if (channelId.startsWith('metrics.cpu.packages.') && index === 4) {
+                name = `Package ${parts[3]}`;
             }
 
             // Always update the object to ensure the name is correct

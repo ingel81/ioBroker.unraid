@@ -1,11 +1,11 @@
 import React from 'react';
-import { withStyles, createStyles, type WithStyles, type Theme } from '@material-ui/core/styles';
-import TextField, { type TextFieldProps } from '@material-ui/core/TextField';
-import Checkbox from '@material-ui/core/Checkbox';
-import FormControlLabel from '@material-ui/core/FormControlLabel';
-import Typography from '@material-ui/core/Typography';
-import Divider from '@material-ui/core/Divider';
-import I18n from '@iobroker/adapter-react/i18n';
+import { styled } from '@mui/material/styles';
+import TextField, { type TextFieldProps } from '@mui/material/TextField';
+import Checkbox from '@mui/material/Checkbox';
+import FormControlLabel from '@mui/material/FormControlLabel';
+import Typography from '@mui/material/Typography';
+import Divider from '@mui/material/Divider';
+import { I18n } from '@iobroker/adapter-react-v5';
 
 import {
     domainTree,
@@ -17,98 +17,109 @@ import {
     getDomainAncestors,
     domainNodeById,
 } from '../../../src/shared/unraid-domains';
+import type enTranslations from '../i18n/en.json';
 
 // Local type for admin words
-type AdminWord = keyof typeof import('../i18n/en.json');
+type AdminWord = keyof typeof enTranslations;
 
-const styles = (theme: Theme): ReturnType<typeof createStyles> =>
-    createStyles({
-        tab: {
-            maxWidth: 800,
-            padding: 16,
-            color: theme.palette.text.primary,
-        },
-        section: {
-            marginBottom: 24,
-        },
-        sectionHeader: {
-            marginBottom: 8,
-            color: theme.palette.text.primary,
-        },
-        input: {
-            marginTop: 0,
-            width: '100%',
-            maxWidth: 600,
-        },
-        controlElement: {
-            marginBottom: 16,
-        },
-        treeContainer: {
-            border: `1px solid ${theme.palette.type === 'dark' ? '#555' : '#cccccc'}`,
-            borderRadius: 4,
-            padding: '12px 16px',
-            backgroundColor: theme.palette.type === 'dark' ? 'rgba(255, 255, 255, 0.05)' : 'transparent',
-        },
-        treeRow: {
-            display: 'flex',
-            alignItems: 'center',
-            marginBottom: 4,
-        },
-        treeToggle: {
-            width: 28,
-            height: 28,
-            marginRight: 8,
-            display: 'inline-flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            border: `1px solid ${theme.palette.type === 'dark' ? '#666' : '#cccccc'}`,
-            borderRadius: 4,
-            padding: 0,
-            backgroundColor: 'transparent',
-            cursor: 'pointer',
-            color: theme.palette.text.primary,
-            '&:hover': {
-                backgroundColor: theme.palette.type === 'dark' ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.04)',
-            },
-        },
-        treeTogglePlaceholder: {
-            width: 28,
-            height: 28,
-            marginRight: 8,
-        },
-        treeLabel: {
-            flexGrow: 1,
-            color: theme.palette.text.primary,
-        },
-        treeChildren: {
-            marginLeft: 28,
-        },
-        treeDescription: {
-            marginLeft: 36,
-            marginBottom: 8,
-            color: theme.palette.text.secondary,
-        },
-    });
+// Styled components
+const StyledTab = styled('form')(({ theme }) => ({
+    maxWidth: 800,
+    padding: theme.spacing(2),
+    color: theme.palette.text.primary,
+}));
+
+const Section = styled('div')({
+    marginBottom: 24,
+});
+
+const SectionHeader = styled(Typography)(({ theme }) => ({
+    marginBottom: 8,
+    color: theme.palette.text.primary,
+}));
+
+const StyledInput = styled(TextField)({
+    marginTop: 0,
+    width: '100%',
+    maxWidth: 600,
+    marginBottom: 16,
+});
+
+const ControlElement = styled('div')({
+    marginBottom: 16,
+});
+
+const TreeContainer = styled('div')(({ theme }) => ({
+    border: `1px solid ${theme.palette.mode === 'dark' ? '#555' : '#cccccc'}`,
+    borderRadius: 4,
+    padding: '12px 16px',
+    backgroundColor: theme.palette.mode === 'dark' ? 'rgba(255, 255, 255, 0.05)' : 'transparent',
+}));
+
+const TreeRow = styled('div')({
+    display: 'flex',
+    alignItems: 'center',
+    marginBottom: 4,
+});
+
+const TreeToggle = styled('button')(({ theme }) => ({
+    width: 28,
+    height: 28,
+    marginRight: 8,
+    display: 'inline-flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    border: `1px solid ${theme.palette.mode === 'dark' ? '#666' : '#cccccc'}`,
+    borderRadius: 4,
+    padding: 0,
+    backgroundColor: 'transparent',
+    cursor: 'pointer',
+    color: theme.palette.text.primary,
+    '&:hover': {
+        backgroundColor: theme.palette.mode === 'dark' ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.04)',
+    },
+}));
+
+const TreeTogglePlaceholder = styled('span')({
+    width: 28,
+    height: 28,
+    marginRight: 8,
+});
+
+const TreeLabel = styled(FormControlLabel)(({ theme }) => ({
+    flexGrow: 1,
+    color: theme.palette.text.primary,
+}));
+
+const TreeChildren = styled('div')({
+    marginLeft: 28,
+});
+
+const TreeDescription = styled(Typography)(({ theme }) => ({
+    marginLeft: 36,
+    marginBottom: 8,
+    color: theme.palette.text.secondary,
+}));
 
 /**
  * Props for the Settings component
  */
-type SettingsProps = WithStyles<typeof styles> & {
+interface SettingsProps {
     /** Current native configuration from ioBroker */
     native: ioBroker.AdapterConfig;
     /** Callback to update configuration values */
     onChange: <K extends keyof ioBroker.AdapterConfig>(attr: K, value: ioBroker.AdapterConfig[K]) => void;
     /** Current theme type (light/dark) */
     themeType?: string;
-};
+}
 
 /**
  * State for the Settings component
  */
-type SettingsState = {
+interface SettingsState {
     /** Set of expanded domain IDs in the tree view */
     expandedDomainIds: Set<string>;
-};
+}
 
 const treeOrder = new Map<string, number>();
 allDomainIds.forEach((id, index) => treeOrder.set(id, index));
@@ -196,7 +207,7 @@ class Settings extends React.Component<SettingsProps, SettingsState> {
      *
      * @param props - Component properties
      */
-    public constructor(props: SettingsProps) {
+    constructor(props: SettingsProps) {
         super(props);
 
         const expandable = new Set<string>();
@@ -226,14 +237,14 @@ class Settings extends React.Component<SettingsProps, SettingsState> {
         type: TextFieldProps['type'],
         additionalProps: Partial<TextFieldProps> = {},
     ): React.ReactNode {
-        const { classes, native } = this.props;
+        const { native } = this.props;
         const currentValue = native[attr];
         const value = typeof currentValue === 'string' ? currentValue : '';
 
         return (
-            <TextField
+            <StyledInput
+                variant="standard"
                 label={I18n.t(title)}
-                className={`${classes.input} ${classes.controlElement}`}
                 value={value}
                 type={type ?? 'text'}
                 onChange={event => {
@@ -253,16 +264,16 @@ class Settings extends React.Component<SettingsProps, SettingsState> {
      * @returns TextField component for poll interval
      */
     private renderPollInterval(): React.ReactNode {
-        const { classes, native } = this.props;
+        const { native } = this.props;
         const value = typeof native.pollIntervalSeconds === 'number' ? native.pollIntervalSeconds : 60;
 
         return (
-            <TextField
+            <StyledInput
+                variant="standard"
                 label={I18n.t('pollIntervalSeconds')}
-                className={`${classes.input} ${classes.controlElement}`}
                 value={value}
                 type="number"
-                inputProps={{ min: 10, step: 5 }}
+                slotProps={{ htmlInput: { min: 10, step: 5 } }}
                 onChange={event => {
                     const inputValue = event.target.value;
                     // Allow empty string for editing
@@ -350,7 +361,6 @@ class Settings extends React.Component<SettingsProps, SettingsState> {
      * @returns React node for the domain
      */
     private renderDomainNode(node: DomainNode, depth: number, selection: Set<DomainId>): React.ReactNode {
-        const { classes } = this.props;
         const hasChildren = !!node.children?.length;
         const isExpanded = this.state.expandedDomainIds.has(node.id);
         const isChecked = isNodeFullySelected(node, selection);
@@ -358,24 +368,19 @@ class Settings extends React.Component<SettingsProps, SettingsState> {
 
         return (
             <React.Fragment key={node.id}>
-                <div
-                    className={classes.treeRow}
-                    style={{ paddingLeft: depth * 20 }}
-                >
+                <TreeRow style={{ paddingLeft: depth * 20 }}>
                     {hasChildren ? (
-                        <button
+                        <TreeToggle
                             type="button"
-                            className={classes.treeToggle}
                             onClick={() => this.toggleDomainExpansion(node.id)}
                             aria-label={isExpanded ? I18n.t('collapseNode') : I18n.t('expandNode')}
                         >
                             {isExpanded ? '-' : '+'}
-                        </button>
+                        </TreeToggle>
                     ) : (
-                        <span className={classes.treeTogglePlaceholder} />
+                        <TreeTogglePlaceholder />
                     )}
-                    <FormControlLabel
-                        className={classes.treeLabel}
+                    <TreeLabel
                         control={
                             <Checkbox
                                 color="primary"
@@ -386,20 +391,14 @@ class Settings extends React.Component<SettingsProps, SettingsState> {
                         }
                         label={I18n.t(node.label as AdminWord)}
                     />
-                </div>
+                </TreeRow>
                 {node.description ? (
-                    <Typography
-                        variant="caption"
-                        color="textSecondary"
-                        className={classes.treeDescription}
-                    >
-                        {I18n.t(node.description as AdminWord)}
-                    </Typography>
+                    <TreeDescription variant="caption">{I18n.t(node.description as AdminWord)}</TreeDescription>
                 ) : null}
                 {hasChildren && isExpanded ? (
-                    <div className={classes.treeChildren}>
+                    <TreeChildren>
                         {node.children!.map(child => this.renderDomainNode(child, depth + 1, selection))}
-                    </div>
+                    </TreeChildren>
                 ) : null}
             </React.Fragment>
         );
@@ -410,8 +409,8 @@ class Settings extends React.Component<SettingsProps, SettingsState> {
      *
      * @returns React component tree for settings
      */
-    public render(): React.ReactNode {
-        const { classes, native } = this.props;
+    render(): React.ReactNode {
+        const { native } = this.props;
         const enabledDomainsArrayRaw = Array.isArray(native.enabledDomains)
             ? native.enabledDomains
             : [...defaultEnabledDomains];
@@ -421,14 +420,9 @@ class Settings extends React.Component<SettingsProps, SettingsState> {
         const selection = new Set<DomainId>(enabledDomainsArray);
 
         return (
-            <form className={classes.tab}>
-                <div className={classes.section}>
-                    <Typography
-                        variant="h6"
-                        className={classes.sectionHeader}
-                    >
-                        {I18n.t('section.connection')}
-                    </Typography>
+            <StyledTab>
+                <Section>
+                    <SectionHeader variant="h6">{I18n.t('section.connection')}</SectionHeader>
                     {this.renderInput('baseUrl', 'baseUrl', 'text', {
                         required: true,
                         helperText: I18n.t('baseUrl_help'),
@@ -438,7 +432,7 @@ class Settings extends React.Component<SettingsProps, SettingsState> {
                         helperText: I18n.t('apiToken_help'),
                         autoComplete: 'off',
                     })}
-                    <div className={classes.controlElement}>
+                    <ControlElement>
                         <FormControlLabel
                             control={
                                 <Checkbox
@@ -452,25 +446,20 @@ class Settings extends React.Component<SettingsProps, SettingsState> {
                         <Typography
                             variant="caption"
                             color="textSecondary"
-                            style={{ display: 'block', marginLeft: 32 }}
+                            sx={{ display: 'block', marginLeft: 4 }}
                         >
                             {I18n.t('allowSelfSigned_help')}
                         </Typography>
-                    </div>
-                </div>
+                    </ControlElement>
+                </Section>
 
                 <Divider />
 
-                <div className={classes.section}>
-                    <Typography
-                        variant="h6"
-                        className={classes.sectionHeader}
-                    >
-                        {I18n.t('section.polling')}
-                    </Typography>
+                <Section>
+                    <SectionHeader variant="h6">{I18n.t('section.polling')}</SectionHeader>
                     {this.renderPollInterval()}
                     {/* Subscription support temporarily disabled due to Unraid API issues
-                    <div className={classes.controlElement}>
+                    <ControlElement>
                         <FormControlLabel
                             control={
                                 <Checkbox
@@ -481,36 +470,29 @@ class Settings extends React.Component<SettingsProps, SettingsState> {
                             }
                             label={I18n.t('useSubscriptions')}
                         />
-                        <Typography variant="caption" color="textSecondary" style={{ display: 'block', marginLeft: 32 }}>
+                        <Typography variant="caption" color="textSecondary" sx={{ display: 'block', marginLeft: 4 }}>
                             {I18n.t('useSubscriptions_help')}
                         </Typography>
-                    </div>
+                    </ControlElement>
                     */}
-                </div>
+                </Section>
 
                 <Divider />
 
-                <div className={classes.section}>
-                    <Typography
-                        variant="h6"
-                        className={classes.sectionHeader}
-                    >
-                        {I18n.t('section.domains')}
-                    </Typography>
+                <Section>
+                    <SectionHeader variant="h6">{I18n.t('section.domains')}</SectionHeader>
                     <Typography
                         variant="body2"
                         color="textSecondary"
-                        className={classes.controlElement}
+                        sx={{ marginBottom: 2 }}
                     >
                         {I18n.t('enabledDomains_help')}
                     </Typography>
-                    <div className={classes.treeContainer}>
-                        {domainTree.map(node => this.renderDomainNode(node, 0, selection))}
-                    </div>
-                </div>
-            </form>
+                    <TreeContainer>{domainTree.map(node => this.renderDomainNode(node, 0, selection))}</TreeContainer>
+                </Section>
+            </StyledTab>
         );
     }
 }
 
-export default withStyles(styles)(Settings as React.ComponentType<SettingsProps>);
+export default Settings;

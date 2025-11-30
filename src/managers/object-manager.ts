@@ -7,7 +7,7 @@ interface TrackedObject {
     type: 'channel' | 'state';
     lastSeen: number;
     isStatic: boolean;
-    resourceType?: 'cpu' | 'disk' | 'docker' | 'share' | 'vm';
+    resourceType?: 'cpu' | 'cpuPackage' | 'disk' | 'docker' | 'share' | 'vm';
     resourceId?: string;
 }
 
@@ -85,7 +85,7 @@ export class ObjectManager {
      * @param currentResources - Map of current resources found in poll
      */
     async handleDynamicResources(
-        resourceType: 'cpu' | 'disk' | 'docker' | 'share' | 'vm',
+        resourceType: 'cpu' | 'cpuPackage' | 'disk' | 'docker' | 'share' | 'vm',
         currentResources: Map<string, any>,
     ): Promise<void> {
         const resourcePrefix = this.getResourcePrefix(resourceType);
@@ -257,6 +257,9 @@ export class ObjectManager {
             } else if (relativeId.startsWith('metrics.cpu.cores.') && parts.length === 4) {
                 newName = `Core ${parts[3]}`;
                 checkedCount++;
+            } else if (relativeId.startsWith('metrics.cpu.packages.') && parts.length === 4) {
+                newName = `Package ${parts[3]}`;
+                checkedCount++;
             }
 
             // Update the channel name if it's different
@@ -292,10 +295,12 @@ export class ObjectManager {
         return null;
     }
 
-    private getResourcePrefix(resourceType: 'cpu' | 'disk' | 'docker' | 'share' | 'vm'): string {
+    private getResourcePrefix(resourceType: 'cpu' | 'cpuPackage' | 'disk' | 'docker' | 'share' | 'vm'): string {
         switch (resourceType) {
             case 'cpu':
                 return 'metrics.cpu.cores';
+            case 'cpuPackage':
+                return 'metrics.cpu.packages';
             case 'disk':
                 return 'array.disks';
             case 'docker':
