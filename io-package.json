@@ -1,8 +1,21 @@
 {
   "common": {
     "name": "unraid",
-    "version": "0.7.0",
+    "version": "0.7.1",
     "news": {
+      "0.7.1": {
+        "en": "Minor pipeline issues fixed",
+        "de": "Minenpipeline Probleme behoben",
+        "ru": "Незначительные проблемы с трубопроводом решены",
+        "pt": "Pequenas emissões de gasodutos",
+        "nl": "Kleine pijpleidingproblemen opgelost",
+        "fr": "Problèmes de pipeline mineurs réglés",
+        "it": "Problemi relativi alle tubazioni minori",
+        "es": "Cuestiones relativas a las tuberías menores",
+        "pl": "Ustalone drobne problemy z rurociągiem",
+        "uk": "Нормативно-правові питання",
+        "zh-cn": "已解决的次要管道问题"
+      },
       "0.7.0": {
         "en": "Migrated admin UI to @iobroker/adapter-react-v5 (React 18, MUI v6)\nExtended Unraid GraphQL schema (CPU package power and temperatures)\nRefined API token documentation with Viewer role permissions\nUpdated dependencies (release-script 5.x, adapter-react-v5 8.x)",
         "de": "Migrated admin UI to @iobroker/adapter-react-v5 (React 18, MUI v6)\nVerlängerte ungestrichene Grafik QL-Schema (CPU-Paketleistung und Temperaturen)\nVerbesserte API-Token-Dokumentation mit Viewer-Rollenberechtigungen\nAktualisierte Abhängigkeiten (Release-script 5.x, adapter-react-v5 8.x)",
@@ -80,19 +93,6 @@
         "pl": "Dodano funkcję sterowania kontenerem VM i Docker\nPrzetwarzanie i czyszczenie kodu\nTłumaczenie",
         "uk": "Додана функція керування контейнерами VM і Docker\nРефакторинг коду і очищення\nПереклад",
         "zh-cn": "添加 VM 和 Docker 容器控制功能\n代码重构和清理\n翻译"
-      },
-      "0.5.3": {
-        "en": "Support for node 20, 22 and 24",
-        "de": "Unterstützung für Knoten 20, 22 und 24",
-        "ru": "Поддержка узлов 20, 22 и 24",
-        "pt": "Suporte para nó 20, 22 e 24",
-        "nl": "Steun voor node 20, 22 en 24",
-        "fr": "Appui aux nœuds 20, 22 et 24",
-        "it": "Supporto per nodo 20, 22 e 24",
-        "es": "Apoyo al nodo 20, 22 y 24",
-        "pl": "Wsparcie dla węzła 20, 22 i 24",
-        "uk": "Підтримка вузла 20, 22 і 24",
-        "zh-cn": "支持节点20、22和24"
       }
     },
     "titleLang": {
