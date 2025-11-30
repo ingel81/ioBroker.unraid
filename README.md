@@ -44,15 +44,16 @@ This adapter connects ioBroker to Unraid servers via the GraphQL API to monitor 
 
 1. Click on **"Add API Key"**
 2. Configure the permissions:
-   - **Base Role**: Select **"Viewer"** (provides read access to system info, metrics, disks, etc.)
-   - **Additional Permissions** (required for control features):
-     - **Docker Manager**: Allows starting/stopping Docker containers
-     - **VM Manager**: Allows starting/stopping/pausing virtual machines
+    - **Base Role**: Select **"Viewer"** (provides read access to system info, metrics, disks, etc.)
+    - **Additional Permissions** (required for control features):
+        - **Docker Manager**: Allows starting/stopping Docker containers
+        - **VM Manager**: Allows starting/stopping/pausing virtual machines
 
-   **Quick Setup Alternative**: Copy this template string and paste it into **API Keys → "Create from template"**:
-   ```
-   ?name=ioBroker+unraid+adapter+key&scopes=role%3Aviewer%2Cdocker%2Bvms%3Acreate_any%2Bdelete_any%2Bread_any%2Bupdate_any%2Carray%2Bdashboard%2Bdisk%2Binfo%2Blogs%2Bnetwork%3Aread_any
-   ```
+    **Quick Setup Alternative**: Copy this template string and paste it into **API Keys → "Create from template"**:
+
+    ```
+    ?name=ioBroker+unraid+adapter+key&scopes=role%3Aviewer%2Cdocker%2Bvms%3Acreate_any%2Bdelete_any%2Bread_any%2Bupdate_any%2Carray%2Bdashboard%2Bdisk%2Binfo%2Blogs%2Bnetwork%3Aread_any
+    ```
 
 3. Give the token a descriptive name (e.g., "ioBroker")
 4. Copy the generated token (API Key) - you'll need it for the adapter configuration
@@ -97,6 +98,11 @@ The adapter creates a structured tree of objects for the monitored data:
   Placeholder for the next version (at the beginning of the line):
   ### **WORK IN PROGRESS**
 -->
+
+### **WORK IN PROGRESS**
+
+- (ingel81) Minor pipeline issues fixed
+
 ### 0.7.0 (2025-11-30)
 
 - (ingel81) Migrated admin UI to @iobroker/adapter-react-v5 (React 18, MUI v6)
