@@ -97,8 +97,7 @@ The adapter creates a structured tree of objects for the monitored data:
   Placeholder for the next version (at the beginning of the line):
   ### **WORK IN PROGRESS**
 -->
-
-### **WORK IN PROGRESS**
+### 0.7.0 (2025-11-30)
 
 - (ingel81) Migrated admin UI to @iobroker/adapter-react-v5 (React 18, MUI v6)
 - (ingel81) Extended Unraid GraphQL schema (CPU package power and temperatures)

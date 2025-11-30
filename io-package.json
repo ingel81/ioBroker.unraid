@@ -1,8 +1,21 @@
 {
   "common": {
     "name": "unraid",
-    "version": "0.6.2",
+    "version": "0.7.0",
     "news": {
+      "0.7.0": {
+        "en": "Migrated admin UI to @iobroker/adapter-react-v5 (React 18, MUI v6)\nExtended Unraid GraphQL schema (CPU package power and temperatures)\nRefined API token documentation with Viewer role permissions\nUpdated dependencies (release-script 5.x, adapter-react-v5 8.x)",
+        "de": "Migrated admin UI to @iobroker/adapter-react-v5 (React 18, MUI v6)\nVerlängerte ungestrichene Grafik QL-Schema (CPU-Paketleistung und Temperaturen)\nVerbesserte API-Token-Dokumentation mit Viewer-Rollenberechtigungen\nAktualisierte Abhängigkeiten (Release-script 5.x, adapter-react-v5 8.x)",
+        "ru": "Migrated admin UI to @iobroker/adapter-react-v5 (React 18, MUI v6)\nРасширенный Unraid Graph QL схема (мощность и температуры пакета процессора)\nУсовершенствованная документация токенов API с разрешениями ролей Viewer\nОбновленные зависимости (релиз-скрипт 5.x, адаптер-реакция-v5 8.x)",
+        "pt": "IU de administração modificada para @ iobroker/adapter- react- v5 (React 18, MUI v6)\nGráfico Extended Unraid Esquema de QL (potência e temperaturas do pacote PCU)\nDocumentação do token da API refinada com permissões do Visualizador\nDependências atualizadas (release-script 5.x, adaptator-react-v5 8.x)",
+        "nl": "Migrated admin UI to @iobroker/adapter-react-v5 (React 18, MUI v6)\nUitgebreide Unraid-grafiek QL schema (CPU pakketvermogen en temperaturen)\nGeraffineerde API token documentatie met rolrechten van de kijker\nBijgewerkte afhankelijkheden (release-script 5.x, adapter-react-v5 8.x)",
+        "fr": "Migred admin UI to @iobroker/adaptateur-react-v5 (Réaction 18, MUI v6)\nGraphique inédit étendu Schéma QL (puissance et températures du paquet CPU)\nDocumentation de jeton API affinée avec permissions de rôle Viewer\nDépendances actualisées (release-script 5.x, adaptateur-react-v5 8.x)",
+        "it": "Admin emigrato UI a @iobroker/adapter-react-v5 (React 18, MUI v6)\nGrafica non controllata estesa Schema QL (alimentazione del pacchetto CPU e temperature)\nDocumentazione di token API modificata con autorizzazioni di ruolo Viewer\nDipendenze aggiornate (release-script 5.x, adattatore-react-v5 8.x)",
+        "es": "Administración Migrated UI a @iobroker/adapter-react-v5 (React 18, MUI v6)\nGráfico no raído extendido Esquema QL ( potencia y temperaturas del paquete CPU)\nDocumentación de token de API refinada con permisos de función de Viewer\nDependencias actualizadas (release-script 5.x, adapter-react-v5 8.x)",
+        "pl": "Migrated admin UI to @ iobroker / adapter- react- v5 (React 18, MUI v6)\nRozszerzony nienapromieniowany wykres Schemat QL (moc i temperatura pakietu CPU)\nRafined API token dokumentacja z uprawnieniami do roli Viewer\nAktualizacja zależności (release- script 5.x, adapter- react- v5 8.x)",
+        "uk": "Migrated admin UI to @iobroker/adapter-react-v5 (React 18, MUI v6)\nРозширений графічний граф QL schema (Сила пакету CPU та температури)\nРефінована документація з дозволами на роль Переглядача\nОновлені залежності (редагування-script 5.x, адаптер-реакт-v5 8.x)",
+        "zh-cn": "将管理员UI移到@iobroducer/adapter-react-v5(反应 18, MUI v6)\n扩展未赖图 QL 计划(CPU包机功率和温度)\n改进带有查看器角色权限的 API 令牌文档\n更新的依附关系(发行-标注5.x,适配器-反应-v5 8.x)"
+      },
       "0.6.2": {
         "en": "dependencies updated",
         "de": "aktualisierte abhängigkeiten",
@@ -80,19 +93,6 @@
         "pl": "Wsparcie dla węzła 20, 22 i 24",
         "uk": "Підтримка вузла 20, 22 і 24",
         "zh-cn": "支持节点20、22和24"
-      },
-      "0.5.2": {
-        "en": "Documentation\nMinor admin page improvements",
-        "de": "Dokumentation\nMinor Admin Seite Verbesserungen",
-        "ru": "Документация\nУлучшение страницы Minor Admin",
-        "pt": "Documentação\nMelhorias menores na página de administração",
-        "nl": "Documentatie\nMinor admin pagina verbeteringen",
-        "fr": "Documentation\nAméliorations mineures des pages administratives",
-        "it": "Documentazione\nMiglioramento della pagina di amministrazione minore",
-        "es": "Documentación\nMejoras de la página de administración menor",
-        "pl": "Dokumentacja\nNiewielkie ulepszenia strony administratora",
-        "uk": "Документація\nНормативно-правова база",
-        "zh-cn": "文档\n小管理页面改进"
       }
     },
     "titleLang": {
