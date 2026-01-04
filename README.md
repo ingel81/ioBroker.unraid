@@ -98,8 +98,7 @@ The adapter creates a structured tree of objects for the monitored data:
   Placeholder for the next version (at the beginning of the line):
   ### **WORK IN PROGRESS**
 -->
-
-### **WORK IN PROGRESS**
+### 0.7.2 (2026-01-04)
 
 - (ingel81) Updated dependencies and admin UI (React 19)
 

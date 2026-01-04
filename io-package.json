@@ -1,8 +1,21 @@
 {
   "common": {
     "name": "unraid",
-    "version": "0.7.1",
+    "version": "0.7.2",
     "news": {
+      "0.7.2": {
+        "en": "Updated dependencies and admin UI (React 19)",
+        "de": "Aktualisierte Abhängigkeiten und Admin UI (React 19)",
+        "ru": "Обновленные зависимости и пользовательский интерфейс администратора (React 19)",
+        "pt": "Dependências atualizadas e administração de UI (Reagir 19)",
+        "nl": "Bijgewerkte afhankelijkheden en admin UI (React 19)",
+        "fr": "Mise à jour des dépendances et de l'assurance-chômage des administrateurs (Réaction 19)",
+        "it": "Dipendenze aggiornate e UI amministratore (React 19)",
+        "es": "Actualización de las dependencias y administración UI (Reacto 19)",
+        "pl": "Aktualizacja zależności i interfejsu administratora (React 19)",
+        "uk": "Оновлені залежності та admin UI (React 19)",
+        "zh-cn": "更新的依赖关系和管理员UI(反应19)"
+      },
       "0.7.1": {
         "en": "Minor pipeline issues fixed",
         "de": "Minenpipeline Probleme behoben",
