@@ -98,7 +98,7 @@ The adapter creates a structured tree of objects for the monitored data:
   Placeholder for the next version (at the beginning of the line):
   ### **WORK IN PROGRESS**
 -->
-### **WORK IN PROGRESS**
+### 0.8.0 (2026-04-19)
 
 - (ingel81) **Node.js 22 or higher is now required** (Node 20 reached end-of-life on 2026-03-24)
 - (ingel81) Requires ioBroker admin 7.6.20 or newer

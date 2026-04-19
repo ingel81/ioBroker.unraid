@@ -1,8 +1,21 @@
 {
   "common": {
     "name": "unraid",
-    "version": "0.7.2",
+    "version": "0.8.0",
     "news": {
+      "0.8.0": {
+        "en": "**Node.js 22 or higher is now required** (Node 20 reached end-of-life on 2026-03-24)\nRequires ioBroker admin 7.6.20 or newer\nUpdated runtime dependencies (graphql, undici, ws, @apollo/client)\nInternal: CI migrated to Node 22/24, dev dependencies refreshed",
+        "de": "** Node.js 22 oder höher ist jetzt erforderlich** (Nr. 20 erreichte am 2026-03-24 Lebensende)\nErfordert ioBroker admin 7.6.20 oder neuer\nAktualisierte Laufzeitabhängigkeiten (graphql, undici, ws, @apollo/client)\nIntern: CI migriert zu Node 22/24, dev Abhängigkeiten erfrischt",
+        "ru": "**Node.js 22 или выше теперь требуется ** (узел 20 достиг конца срока службы на 2026-03-24)\nТребуется админ ioBroker 7.6.20 или новее\nОбновленные зависимости времени выполнения (graphql, undici, ws, @apollo/client)\nВнутренний: CI мигрировал в Node 22/24, зависимости dev обновились",
+        "pt": "**Node.js 22 ou superior é agora exigido** (Node 20 atingiu o fim de vida em 2026-03-24)\nRequer ioBroker admin 7.6.20 ou mais recente\nDependências atualizadas em tempo de execução (graphql, undici, ws, @apollo/client)\nInterno: IC migrado para Node 22/24, dependências dev atualizadas",
+        "nl": "**Node.js 22 of hoger is nu vereist** (Node 20 bereikte einde levenseinde op 2026-03-24)\nVereist ioBroker admin 7.6.20 of nieuwer\nBijgewerkte runtime afhankelijkheden (graphql, undici, ws, @apollo/client)\nIntern: CI gemigreerd naar Node 22/24, dev afhankelijkheden vernieuwd",
+        "fr": "**Node.js 22 ou plus est maintenant nécessaire** (Node 20 atteint fin de vie le 2026-03-24)\nNécessite ioBroker admin 7.6.20 ou plus récent\nDépendances d'exécution actualisées (graphql, undici, ws, @apollo/client)\nInterne: IC migré vers Node 22/24, dev dépendances rafraîchies",
+        "it": "**Node.js 22 o superiore è ora richiesto** (nodo 20 raggiunto fine vita il 2026-03-24)\nRichiede ioBroker admin 7.6.20 o più recente\nDipendenze di runtime aggiornate (graphql, undici, ws, @apollo/client)\nInterno: CI migrato a Nodo 22/24, dev dipendenze rinfrescate",
+        "es": "**Node.js 22 or higher is now required** (Node 20 reached end-of-life on 2026-03-24)\nRequiere ioBroker admin 7.6.20 o nuevo\nDependencias actualizadas de tiempo de ejecución (graphql, undici, ws, @apollo/client)\nInterno: el CI emigró al Nodo 22/24, refrescaron las dependencias dev",
+        "pl": "* *Node.js 22 lub wyższy jest teraz wymagany* * (Węzeł 20 osiągnął koniec życia na 2026- 03- 24) \nWymaga admin joBroker 7.6.20 lub nowszy\nAktualizacja zależności czasu pracy (grapql, undici, ws, @ apollo / client)\nWewnętrzne: CI wyemigrował do Węzła 22 / 24, dev zależności odświeżone",
+        "uk": "**Node.js 22 або вище тепер потрібно** (Node 20 досягнуто закінчення життя на 2026-03-24)\nВимагає ioBroker admin 7.6.20 або newer\nОновлені залежності робочого часу (граф, undici, ws, @apollo/client)\nВнутрішня: CI мігрований до Node 22/24, dev залежності освіжають",
+        "zh-cn": "** 现在需要22号或以上节点**(2026-03-24年20号节点达到报废)\n需要 ioBroker 管理员 7.6.20 或更新\n更新的运行时间依赖关系( graphql, undici, ws, @ apollo/ 客户端)\n内部: CI 迁移到22/24号节点, dev 依赖性被刷新"
+      },
       "0.7.2": {
         "en": "Updated dependencies and admin UI (React 19)",
         "de": "Aktualisierte Abhängigkeiten und Admin UI (React 19)",
