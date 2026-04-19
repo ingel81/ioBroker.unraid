@@ -100,12 +100,10 @@ The adapter creates a structured tree of objects for the monitored data:
 -->
 ### **WORK IN PROGRESS**
 
-- (ingel81) Raised Node.js minimum to 22 (Node 20 reached EOL on 2026-03-24)
-- (ingel81) Updated runtime dependencies: graphql 16.13.2, undici 8.1.0, ws 8.20.0
-- (ingel81) Updated dev dependencies: @alcalzone/release-script 5.x plugins, @types/node 25.6.x, @tsconfig/node22
-- (ingel81) CI matrix reduced to Node 22/24; adapter-tests gated on check-and-lint
-- (ingel81) Raised admin global dependency to 7.6.20
-- (ingel81) Migrated Dependabot auto-merge to iobroker-bot-orga/action-automerge-dependabot and removed deprecated workflow
+- (ingel81) **Node.js 22 or higher is now required** (Node 20 reached end-of-life on 2026-03-24)
+- (ingel81) Requires ioBroker admin 7.6.20 or newer
+- (ingel81) Updated runtime dependencies (graphql, undici, ws, @apollo/client)
+- (ingel81) Internal: CI migrated to Node 22/24, dev dependencies refreshed
 
 ### 0.7.2 (2026-01-04)
 
