@@ -60,5 +60,8 @@
     "domains.parityHistory": "奇偶校验历史",
     "domains.remoteAccess": "远程访问",
     "domains.cloud": "My Servers 云",
-    "domains.rclone": "Rclone"
+    "domains.rclone": "Rclone",
+    "domains.metrics.temperature": "温度",
+    "domains.metrics.temperature.board": "主板传感器 (Unraid 7.2+)",
+    "domains.docker.updates": "更新可用性 (Unraid 7.2+)"
 }

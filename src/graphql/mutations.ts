@@ -28,6 +28,42 @@ export const DOCKER_STOP_MUTATION = `
     }
 `;
 
+export const DOCKER_PAUSE_MUTATION = `
+    mutation PauseDockerContainer($id: PrefixedID!) {
+        docker {
+            pause(id: $id) {
+                id
+                state
+                status
+            }
+        }
+    }
+`;
+
+export const DOCKER_UNPAUSE_MUTATION = `
+    mutation UnpauseDockerContainer($id: PrefixedID!) {
+        docker {
+            unpause(id: $id) {
+                id
+                state
+                status
+            }
+        }
+    }
+`;
+
+export const DOCKER_UPDATE_MUTATION = `
+    mutation UpdateDockerContainer($id: PrefixedID!) {
+        docker {
+            updateContainer(id: $id) {
+                id
+                state
+                status
+            }
+        }
+    }
+`;
+
 // VM mutations - all return Boolean!
 export const VM_START_MUTATION = `
     mutation StartVM($id: PrefixedID!) {

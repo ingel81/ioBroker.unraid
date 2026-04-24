@@ -60,5 +60,8 @@
     "domains.parityHistory": "Historial de paridad",
     "domains.remoteAccess": "Acceso remoto",
     "domains.cloud": "Nube My Servers",
-    "domains.rclone": "Rclone"
+    "domains.rclone": "Rclone",
+    "domains.metrics.temperature": "Temperatura",
+    "domains.metrics.temperature.board": "Sensores de la placa base (Unraid 7.2+)",
+    "domains.docker.updates": "Disponibilidad de actualizaciones (Unraid 7.2+)"
 }

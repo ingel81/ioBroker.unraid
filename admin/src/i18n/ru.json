@@ -60,5 +60,8 @@
     "domains.parityHistory": "История четности",
     "domains.remoteAccess": "Удаленный доступ",
     "domains.cloud": "My Servers облако",
-    "domains.rclone": "Rclone"
+    "domains.rclone": "Rclone",
+    "domains.metrics.temperature": "Температура",
+    "domains.metrics.temperature.board": "Датчики материнской платы (Unraid 7.2+)",
+    "domains.docker.updates": "Доступность обновлений (Unraid 7.2+)"
 }

@@ -4,9 +4,22 @@ exports.GraphQLSelectionBuilder = void 0;
 /**
  * Builder class for constructing GraphQL selection queries.
  * Merges multiple domain selections into a single optimized query.
+ * Optionally filters fields marked with `requiresCapability` against
+ * the supplied capability flags.
  */
 class GraphQLSelectionBuilder {
+    capabilities;
     roots = new Map();
+    /**
+     * Create a new selection builder
+     *
+     * @param capabilities - Optional capability flags. Fields with a
+     *   `requiresCapability` attribute will be omitted if the flag is false.
+     *   If omitted, all fields pass through (backwards compatible).
+     */
+    constructor(capabilities) {
+        this.capabilities = capabilities;
+    }
     /**
      * Add multiple root selections to the query builder
      *
@@ -17,9 +30,28 @@ class GraphQLSelectionBuilder {
             if (!selection.fields.length) {
                 continue;
             }
+            if (!this.capabilityAllows(selection.requiresCapability)) {
+                continue;
+            }
             const rootNode = this.getOrCreateRoot(selection.root);
             this.addFields(rootNode, selection.fields);
         }
+    }
+    /**
+     * Check whether a capability-gated element should be included.
+     *
+     * @param capability - Optional capability key guarding the element
+     * @returns true when no gate exists, or when the gate is satisfied
+     */
+    capabilityAllows(capability) {
+        if (!capability) {
+            return true;
+        }
+        if (!this.capabilities) {
+            // No capabilities supplied → default to including everything
+            return true;
+        }
+        return Boolean(this.capabilities[capability]);
     }
     /**
      * Build the complete GraphQL query string
@@ -67,6 +99,9 @@ class GraphQLSelectionBuilder {
      */
     addFields(target, fields) {
         for (const field of fields) {
+            if (!this.capabilityAllows(field.requiresCapability)) {
+                continue;
+            }
             let child = target.get(field.name);
             if (!child) {
                 child = new Map();

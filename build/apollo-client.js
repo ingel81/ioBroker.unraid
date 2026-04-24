@@ -10,6 +10,7 @@ const utilities_1 = require("@apollo/client/utilities");
 const graphql_ws_1 = require("graphql-ws");
 const ws_1 = __importDefault(require("ws"));
 const undici_1 = require("undici");
+const capabilities_1 = require("./shared/capabilities");
 /**
  * Apollo GraphQL client wrapper for Unraid server communication.
  * Handles both HTTP queries/mutations and WebSocket subscriptions.
@@ -156,6 +157,49 @@ class UnraidApolloClient {
             query: (0, core_1.gql)(subscription),
             variables,
         });
+    }
+    /**
+     * Probe the Unraid GraphQL schema for optional features.
+     * Falls back to "all enabled" on errors so established installations
+     * do not lose functionality if introspection is rate-limited or blocked.
+     *
+     * @returns Promise resolving to detected capability flags
+     */
+    async introspectCapabilities() {
+        const probeQuery = `
+            query UnraidCapabilityProbe {
+                metricsType: __type(name: "Metrics") { fields { name } }
+                dockerType: __type(name: "Docker") { fields { name } }
+                dockerContainerType: __type(name: "DockerContainer") { fields { name } }
+                dockerMutationsType: __type(name: "DockerMutations") { fields { name } }
+            }
+        `;
+        try {
+            const result = await this.query(probeQuery);
+            const has = (fields, name) => Array.isArray(fields) && fields.some(f => f.name === name);
+            const metricsFields = result?.metricsType?.fields;
+            const dockerFields = result?.dockerType?.fields;
+            const containerFields = result?.dockerContainerType?.fields;
+            const mutationFields = result?.dockerMutationsType?.fields;
+            const capabilities = {
+                temperatureMetrics: has(metricsFields, 'temperature'),
+                dockerUpdateFlag: has(containerFields, 'isUpdateAvailable'),
+                dockerContainerUpdateStatuses: has(dockerFields, 'containerUpdateStatuses'),
+                dockerPause: has(mutationFields, 'pause'),
+                dockerUnpause: has(mutationFields, 'unpause'),
+                dockerUpdate: has(mutationFields, 'updateContainer'),
+            };
+            this.logger.info(`Unraid capabilities: temperature=${capabilities.temperatureMetrics}, ` +
+                `dockerUpdateFlag=${capabilities.dockerUpdateFlag}, ` +
+                `dockerUpdateStatuses=${capabilities.dockerContainerUpdateStatuses}, ` +
+                `pause=${capabilities.dockerPause}, unpause=${capabilities.dockerUnpause}, ` +
+                `update=${capabilities.dockerUpdate}`);
+            return capabilities;
+        }
+        catch (error) {
+            this.logger.warn(`Capability introspection failed, assuming all features are available: ${error instanceof Error ? error.message : String(error)}`);
+            return (0, capabilities_1.allCapabilitiesEnabled)();
+        }
     }
     /**
      * Run an introspection query to discover available GraphQL subscriptions.

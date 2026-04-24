@@ -1,8 +1,3 @@
-"""
-Indicates exactly one field must be supplied and this field must not be `null`.
-"""
-directive @oneOf on INPUT_OBJECT
-
 """Directive to document required permissions for fields"""
 directive @usePermissions(
   """The action required for access (must be a valid AuthAction enum value)"""
@@ -119,7 +114,9 @@ type ArrayDisk implements Node {
   fsUsed: BigInt
   exportable: Boolean
 
-  """Type of Disk - used to differentiate Cache / Flash / Array / Parity"""
+  """
+  Type of Disk - used to differentiate Boot / Cache / Flash / Data (DATA) / Parity
+  """
   type: ArrayDiskType!
 
   """(%) Disk space left to warn"""
@@ -169,6 +166,7 @@ enum ArrayDiskStatus {
 enum ArrayDiskType {
   DATA
   PARITY
+  BOOT
   FLASH
   CACHE
 }
@@ -194,8 +192,13 @@ type UnraidArray implements Node {
   """Current array capacity"""
   capacity: ArrayCapacity!
 
-  """Current boot disk"""
+  """Returns the active boot disk"""
   boot: ArrayDisk
+
+  """
+  All detected boot devices: every Boot entry for internal boot, including mirrored members when configured, or the mounted /boot Flash entry for legacy USB boot
+  """
+  bootDevices: [ArrayDisk!]!
 
   """Parity disks in the current array"""
   parities: [ArrayDisk!]!
@@ -540,6 +543,7 @@ type Vars implements Node {
   flashGuid: String
   flashProduct: String
   flashVendor: String
+  tpmGuid: String
   regCheck: String
   regFile: String
   regGuid: String
@@ -581,6 +585,10 @@ type Vars implements Node {
   cacheNumDevices: Int
   cacheSbNumDisks: Int
   fsState: String
+  bootEligible: Boolean
+  enableBootTransfer: String
+  bootedFromFlashWithInternalBootSetup: Boolean
+  reservedNames: String
 
   """Human friendly string of array events happening"""
   fsProgress: String
@@ -762,6 +770,11 @@ type Notifications implements Node {
   """A cached overview of the notifications in the system & their severity."""
   overview: NotificationOverview!
   list(filter: NotificationFilter!): [Notification!]!
+
+  """
+  Deduplicated list of unread warning and alert notifications, sorted latest first.
+  """
+  warningsAndAlerts: [Notification!]!
 }
 
 input NotificationFilter {
@@ -844,6 +857,313 @@ type Settings implements Node {
   api: ApiConfig!
 }
 
+type Theme {
+  """The theme name"""
+  name: ThemeName!
+
+  """Whether to show the header banner image"""
+  showBannerImage: Boolean!
+
+  """Whether to show the banner gradient"""
+  showBannerGradient: Boolean!
+
+  """Whether to show the description in the header"""
+  showHeaderDescription: Boolean!
+
+  """The background color of the header"""
+  headerBackgroundColor: String
+
+  """The text color of the header"""
+  headerPrimaryTextColor: String
+
+  """The secondary text color of the header"""
+  headerSecondaryTextColor: String
+}
+
+"""The theme name"""
+enum ThemeName {
+  azure
+  black
+  gray
+  white
+}
+
+type InfoDisplayCase implements Node {
+  id: PrefixedID!
+
+  """Case image URL"""
+  url: String!
+
+  """Case icon identifier"""
+  icon: String!
+
+  """Error message if any"""
+  error: String!
+
+  """Base64 encoded case image"""
+  base64: String!
+}
+
+type InfoDisplay implements Node {
+  id: PrefixedID!
+
+  """Case display configuration"""
+  case: InfoDisplayCase!
+
+  """UI theme name"""
+  theme: ThemeName!
+
+  """Temperature unit (C or F)"""
+  unit: Temperature!
+
+  """Enable UI scaling"""
+  scale: Boolean!
+
+  """Show tabs in UI"""
+  tabs: Boolean!
+
+  """Enable UI resize"""
+  resize: Boolean!
+
+  """Show WWN identifiers"""
+  wwn: Boolean!
+
+  """Show totals"""
+  total: Boolean!
+
+  """Show usage statistics"""
+  usage: Boolean!
+
+  """Show text labels"""
+  text: Boolean!
+
+  """Warning temperature threshold"""
+  warning: Int!
+
+  """Critical temperature threshold"""
+  critical: Int!
+
+  """Hot temperature threshold"""
+  hot: Int!
+
+  """Maximum temperature threshold"""
+  max: Int
+
+  """Locale setting"""
+  locale: String
+}
+
+"""Temperature unit"""
+enum Temperature {
+  CELSIUS
+  FAHRENHEIT
+}
+
+type Language {
+  """Language code (e.g. en_US)"""
+  code: String!
+
+  """Language description/name"""
+  name: String!
+
+  """URL to the language pack XML"""
+  url: String
+}
+
+type PartnerLink {
+  """Display title for the link"""
+  title: String!
+
+  """The URL"""
+  url: String!
+}
+
+type PartnerConfig {
+  name: String
+  url: String
+
+  """Link to hardware specifications for this system"""
+  hardwareSpecsUrl: String
+
+  """Link to the system manual/documentation"""
+  manualUrl: String
+
+  """Link to manufacturer support page"""
+  supportUrl: String
+
+  """Additional custom links provided by the partner"""
+  extraLinks: [PartnerLink!]
+}
+
+type BrandingConfig {
+  header: String
+  headermetacolor: String
+  background: String
+  showBannerGradient: Boolean
+  theme: String
+
+  """
+  Banner image source. Supports local path, remote URL, or data URI/base64.
+  """
+  bannerImage: String
+
+  """
+  Built-in case model value written to case-model.cfg when no custom override is supplied.
+  """
+  caseModel: String
+
+  """
+  Case model image source. Supports local path, remote URL, or data URI/base64.
+  """
+  caseModelImage: String
+
+  """
+  Partner logo source for light themes (azure/white). Supports local path, remote URL, or data URI/base64.
+  """
+  partnerLogoLightUrl: String
+
+  """
+  Partner logo source for dark themes (black/gray). Supports local path, remote URL, or data URI/base64.
+  """
+  partnerLogoDarkUrl: String
+
+  """Indicates if a partner logo exists"""
+  hasPartnerLogo: Boolean
+
+  """Custom title for onboarding welcome step"""
+  onboardingTitle: String
+
+  """Custom subtitle for onboarding welcome step"""
+  onboardingSubtitle: String
+
+  """Custom title for fresh install onboarding"""
+  onboardingTitleFreshInstall: String
+
+  """Custom subtitle for fresh install onboarding"""
+  onboardingSubtitleFreshInstall: String
+
+  """Custom title for upgrade onboarding"""
+  onboardingTitleUpgrade: String
+
+  """Custom subtitle for upgrade onboarding"""
+  onboardingSubtitleUpgrade: String
+
+  """Custom title for downgrade onboarding"""
+  onboardingTitleDowngrade: String
+
+  """Custom subtitle for downgrade onboarding"""
+  onboardingSubtitleDowngrade: String
+
+  """Custom title for incomplete onboarding"""
+  onboardingTitleIncomplete: String
+
+  """Custom subtitle for incomplete onboarding"""
+  onboardingSubtitleIncomplete: String
+}
+
+type SystemConfig {
+  serverName: String
+  model: String
+  comment: String
+}
+
+type ActivationCode {
+  code: String
+  partner: PartnerConfig
+  branding: BrandingConfig
+  system: SystemConfig
+}
+
+type OnboardingState {
+  registrationState: RegistrationState
+
+  """Indicates whether the system is registered"""
+  isRegistered: Boolean!
+
+  """Indicates whether the system is a fresh install"""
+  isFreshInstall: Boolean!
+
+  """Indicates whether an activation code is present"""
+  hasActivationCode: Boolean!
+
+  """Indicates whether activation is required based on current state"""
+  activationRequired: Boolean!
+}
+
+"""Onboarding completion state and context"""
+type Onboarding {
+  """
+  The current onboarding status (INCOMPLETE, UPGRADE, DOWNGRADE, or COMPLETED)
+  """
+  status: OnboardingStatus!
+
+  """Whether this is a partner/OEM build with activation code"""
+  isPartnerBuild: Boolean!
+
+  """Whether the onboarding flow has been completed"""
+  completed: Boolean!
+
+  """The OS version when onboarding was completed"""
+  completedAtVersion: String
+
+  """The activation code from the .activationcode file, if present"""
+  activationCode: String
+
+  """Whether the onboarding modal should currently be shown"""
+  shouldOpen: Boolean!
+
+  """Runtime onboarding state values used by the onboarding flow"""
+  onboardingState: OnboardingState!
+}
+
+"""
+The current onboarding status based on completion state and version relationship
+"""
+enum OnboardingStatus {
+  INCOMPLETE
+  UPGRADE
+  DOWNGRADE
+  COMPLETED
+}
+
+type Customization {
+  "\n#### Required Permissions:\n\n- Action: **READ_ANY**\n- Resource: **ACTIVATION_CODE**"
+  activationCode: ActivationCode
+
+  "\n#### Required Permissions:\n\n- Action: **READ_ANY**\n- Resource: **CUSTOMIZATIONS**\n\n#### Description:\n\nOnboarding completion state and context"
+  onboarding: Onboarding!
+
+  "\n#### Required Permissions:\n\n- Action: **READ_ANY**\n- Resource: **DISPLAY**"
+  availableLanguages: [Language!]
+}
+
+"""Result of attempting internal boot pool setup"""
+type OnboardingInternalBootResult {
+  ok: Boolean!
+  code: Int
+  output: String!
+}
+
+"""Warning metadata for an assignable internal boot drive"""
+type OnboardingInternalBootDriveWarning {
+  diskId: String!
+  device: String!
+  warnings: [String!]!
+}
+
+"""Current onboarding context for configuring internal boot"""
+type OnboardingInternalBootContext {
+  arrayStopped: Boolean!
+  bootEligible: Boolean
+  bootedFromFlashWithInternalBootSetup: Boolean!
+  enableBootTransfer: String
+  reservedNames: [String!]!
+  shareNames: [String!]!
+  poolNames: [String!]!
+  assignableDisks: [Disk!]!
+  driveWarnings: [OnboardingInternalBootDriveWarning!]!
+}
+
 type RCloneDrive {
   """Provider name"""
   name: String!
@@ -879,83 +1199,91 @@ type RCloneRemote {
   config: JSON!
 }
 
+"""Represents a tracked plugin installation operation"""
+type PluginInstallOperation {
+  """Unique identifier of the operation"""
+  id: ID!
+
+  """Plugin URL passed to the installer"""
+  url: String!
+
+  """Optional plugin name for display purposes"""
+  name: String
+
+  """Current status of the operation"""
+  status: PluginInstallStatus!
+
+  """Timestamp when the operation was created"""
+  createdAt: DateTime!
+
+  """Timestamp for the last update to this operation"""
+  updatedAt: DateTime
+
+  """Timestamp when the operation finished, if applicable"""
+  finishedAt: DateTime
+
+  """
+  Collected output lines generated by the installer (capped at recent lines)
+  """
+  output: [String!]!
+}
+
+"""Status of a plugin installation operation"""
+enum PluginInstallStatus {
+  FAILED
+  QUEUED
+  RUNNING
+  SUCCEEDED
+}
+
+"""Emitted event representing progress for a plugin installation"""
+type PluginInstallEvent {
+  """Identifier of the related plugin installation operation"""
+  operationId: ID!
+
+  """Status reported with this event"""
+  status: PluginInstallStatus!
+
+  """Output lines newly emitted since the previous event"""
+  output: [String!]
+
+  """Timestamp when the event was emitted"""
+  timestamp: DateTime!
+}
+
 type ArrayMutations {
-  """
-  #### Required Permissions:
-  
-  - Action: **UPDATE_ANY**
-  - Resource: **ARRAY**
-  
-  #### Description:
-  
-  Set array state
-  """
+  "\n#### Required Permissions:\n\n- Action: **UPDATE_ANY**\n- Resource: **ARRAY**\n\n#### Description:\n\nSet array state"
   setState(input: ArrayStateInput!): UnraidArray!
 
-  """
-  #### Required Permissions:
-  
-  - Action: **UPDATE_ANY**
-  - Resource: **ARRAY**
-  
-  #### Description:
-  
-  Add new disk to array
-  """
+  "\n#### Required Permissions:\n\n- Action: **UPDATE_ANY**\n- Resource: **ARRAY**\n\n#### Description:\n\nAdd new disk to array"
   addDiskToArray(input: ArrayDiskInput!): UnraidArray!
 
-  """
-  #### Required Permissions:
-  
-  - Action: **UPDATE_ANY**
-  - Resource: **ARRAY**
-  
-  #### Description:
-  
-  Remove existing disk from array. NOTE: The array must be stopped before running this otherwise it'll throw an error.
-  """
+  "\n#### Required Permissions:\n\n- Action: **UPDATE_ANY**\n- Resource: **ARRAY**\n\n#### Description:\n\nRemove existing disk from array. NOTE: The array must be stopped before running this otherwise it'll throw an error."
   removeDiskFromArray(input: ArrayDiskInput!): UnraidArray!
 
-  """
-  #### Required Permissions:
-  
-  - Action: **UPDATE_ANY**
-  - Resource: **ARRAY**
-  
-  #### Description:
-  
-  Mount a disk in the array
-  """
+  "\n#### Required Permissions:\n\n- Action: **UPDATE_ANY**\n- Resource: **ARRAY**\n\n#### Description:\n\nMount a disk in the array"
   mountArrayDisk(id: PrefixedID!): ArrayDisk!
 
-  """
-  #### Required Permissions:
-  
-  - Action: **UPDATE_ANY**
-  - Resource: **ARRAY**
-  
-  #### Description:
-  
-  Unmount a disk from the array
-  """
+  "\n#### Required Permissions:\n\n- Action: **UPDATE_ANY**\n- Resource: **ARRAY**\n\n#### Description:\n\nUnmount a disk from the array"
   unmountArrayDisk(id: PrefixedID!): ArrayDisk!
 
-  """
-  #### Required Permissions:
-  
-  - Action: **UPDATE_ANY**
-  - Resource: **ARRAY**
-  
-  #### Description:
-  
-  Clear statistics for a disk in the array
-  """
+  "\n#### Required Permissions:\n\n- Action: **UPDATE_ANY**\n- Resource: **ARRAY**\n\n#### Description:\n\nClear statistics for a disk in the array"
   clearArrayDiskStatistics(id: PrefixedID!): Boolean!
 }
 
 input ArrayStateInput {
   """Array state"""
   desiredState: ArrayStateInputState!
+
+  """
+  Optional password used to unlock encrypted array disks when starting the array
+  """
+  decryptionPassword: String
+
+  """
+  Optional keyfile contents used to unlock encrypted array disks when starting the array. Accepts a data URL or raw base64 payload.
+  """
+  decryptionKeyfile: String
 }
 
 enum ArrayStateInputState {
@@ -972,177 +1300,83 @@ input ArrayDiskInput {
 }
 
 type DockerMutations {
-  """
-  #### Required Permissions:
-  
-  - Action: **UPDATE_ANY**
-  - Resource: **DOCKER**
-  
-  #### Description:
-  
-  Start a container
-  """
+  "\n#### Required Permissions:\n\n- Action: **UPDATE_ANY**\n- Resource: **DOCKER**\n\n#### Description:\n\nStart a container"
   start(id: PrefixedID!): DockerContainer!
 
-  """
-  #### Required Permissions:
-  
-  - Action: **UPDATE_ANY**
-  - Resource: **DOCKER**
-  
-  #### Description:
-  
-  Stop a container
-  """
+  "\n#### Required Permissions:\n\n- Action: **UPDATE_ANY**\n- Resource: **DOCKER**\n\n#### Description:\n\nStop a container"
   stop(id: PrefixedID!): DockerContainer!
+
+  "\n#### Required Permissions:\n\n- Action: **UPDATE_ANY**\n- Resource: **DOCKER**\n\n#### Description:\n\nPause (Suspend) a container"
+  pause(id: PrefixedID!): DockerContainer!
+
+  "\n#### Required Permissions:\n\n- Action: **UPDATE_ANY**\n- Resource: **DOCKER**\n\n#### Description:\n\nUnpause (Resume) a container"
+  unpause(id: PrefixedID!): DockerContainer!
+
+  "\n#### Required Permissions:\n\n- Action: **DELETE_ANY**\n- Resource: **DOCKER**\n\n#### Description:\n\nRemove a container"
+  removeContainer(id: PrefixedID!, withImage: Boolean): Boolean!
+
+  "\n#### Required Permissions:\n\n- Action: **UPDATE_ANY**\n- Resource: **DOCKER**\n\n#### Description:\n\nUpdate auto-start configuration for Docker containers"
+  updateAutostartConfiguration(entries: [DockerAutostartEntryInput!]!, persistUserPreferences: Boolean): Boolean!
+
+  "\n#### Required Permissions:\n\n- Action: **UPDATE_ANY**\n- Resource: **DOCKER**\n\n#### Description:\n\nUpdate a container to the latest image"
+  updateContainer(id: PrefixedID!): DockerContainer!
+
+  "\n#### Required Permissions:\n\n- Action: **UPDATE_ANY**\n- Resource: **DOCKER**\n\n#### Description:\n\nUpdate multiple containers to the latest images"
+  updateContainers(ids: [PrefixedID!]!): [DockerContainer!]!
+
+  "\n#### Required Permissions:\n\n- Action: **UPDATE_ANY**\n- Resource: **DOCKER**\n\n#### Description:\n\nUpdate all containers that have available updates"
+  updateAllContainers: [DockerContainer!]!
+}
+
+input DockerAutostartEntryInput {
+  """Docker container identifier"""
+  id: PrefixedID!
+
+  """Whether the container should auto-start"""
+  autoStart: Boolean!
+
+  """Number of seconds to wait after starting the container"""
+  wait: Int
 }
 
 type VmMutations {
-  """
-  #### Required Permissions:
-  
-  - Action: **UPDATE_ANY**
-  - Resource: **VMS**
-  
-  #### Description:
-  
-  Start a virtual machine
-  """
+  "\n#### Required Permissions:\n\n- Action: **UPDATE_ANY**\n- Resource: **VMS**\n\n#### Description:\n\nStart a virtual machine"
   start(id: PrefixedID!): Boolean!
 
-  """
-  #### Required Permissions:
-  
-  - Action: **UPDATE_ANY**
-  - Resource: **VMS**
-  
-  #### Description:
-  
-  Stop a virtual machine
-  """
+  "\n#### Required Permissions:\n\n- Action: **UPDATE_ANY**\n- Resource: **VMS**\n\n#### Description:\n\nStop a virtual machine"
   stop(id: PrefixedID!): Boolean!
 
-  """
-  #### Required Permissions:
-  
-  - Action: **UPDATE_ANY**
-  - Resource: **VMS**
-  
-  #### Description:
-  
-  Pause a virtual machine
-  """
+  "\n#### Required Permissions:\n\n- Action: **UPDATE_ANY**\n- Resource: **VMS**\n\n#### Description:\n\nPause a virtual machine"
   pause(id: PrefixedID!): Boolean!
 
-  """
-  #### Required Permissions:
-  
-  - Action: **UPDATE_ANY**
-  - Resource: **VMS**
-  
-  #### Description:
-  
-  Resume a virtual machine
-  """
+  "\n#### Required Permissions:\n\n- Action: **UPDATE_ANY**\n- Resource: **VMS**\n\n#### Description:\n\nResume a virtual machine"
   resume(id: PrefixedID!): Boolean!
 
-  """
-  #### Required Permissions:
-  
-  - Action: **UPDATE_ANY**
-  - Resource: **VMS**
-  
-  #### Description:
-  
-  Force stop a virtual machine
-  """
+  "\n#### Required Permissions:\n\n- Action: **UPDATE_ANY**\n- Resource: **VMS**\n\n#### Description:\n\nForce stop a virtual machine"
   forceStop(id: PrefixedID!): Boolean!
 
-  """
-  #### Required Permissions:
-  
-  - Action: **UPDATE_ANY**
-  - Resource: **VMS**
-  
-  #### Description:
-  
-  Reboot a virtual machine
-  """
+  "\n#### Required Permissions:\n\n- Action: **UPDATE_ANY**\n- Resource: **VMS**\n\n#### Description:\n\nReboot a virtual machine"
   reboot(id: PrefixedID!): Boolean!
 
-  """
-  #### Required Permissions:
-  
-  - Action: **UPDATE_ANY**
-  - Resource: **VMS**
-  
-  #### Description:
-  
-  Reset a virtual machine
-  """
+  "\n#### Required Permissions:\n\n- Action: **UPDATE_ANY**\n- Resource: **VMS**\n\n#### Description:\n\nReset a virtual machine"
   reset(id: PrefixedID!): Boolean!
 }
 
 """API Key related mutations"""
 type ApiKeyMutations {
-  """
-  #### Required Permissions:
-  
-  - Action: **CREATE_ANY**
-  - Resource: **API_KEY**
-  
-  #### Description:
-  
-  Create an API key
-  """
+  "\n#### Required Permissions:\n\n- Action: **CREATE_ANY**\n- Resource: **API_KEY**\n\n#### Description:\n\nCreate an API key"
   create(input: CreateApiKeyInput!): ApiKey!
 
-  """
-  #### Required Permissions:
-  
-  - Action: **UPDATE_ANY**
-  - Resource: **API_KEY**
-  
-  #### Description:
-  
-  Add a role to an API key
-  """
+  "\n#### Required Permissions:\n\n- Action: **UPDATE_ANY**\n- Resource: **API_KEY**\n\n#### Description:\n\nAdd a role to an API key"
   addRole(input: AddRoleForApiKeyInput!): Boolean!
 
-  """
-  #### Required Permissions:
-  
-  - Action: **UPDATE_ANY**
-  - Resource: **API_KEY**
-  
-  #### Description:
-  
-  Remove a role from an API key
-  """
+  "\n#### Required Permissions:\n\n- Action: **UPDATE_ANY**\n- Resource: **API_KEY**\n\n#### Description:\n\nRemove a role from an API key"
   removeRole(input: RemoveRoleFromApiKeyInput!): Boolean!
 
-  """
-  #### Required Permissions:
-  
-  - Action: **DELETE_ANY**
-  - Resource: **API_KEY**
-  
-  #### Description:
-  
-  Delete one or more API keys
-  """
+  "\n#### Required Permissions:\n\n- Action: **DELETE_ANY**\n- Resource: **API_KEY**\n\n#### Description:\n\nDelete one or more API keys"
   delete(input: DeleteApiKeyInput!): Boolean!
 
-  """
-  #### Required Permissions:
-  
-  - Action: **UPDATE_ANY**
-  - Resource: **API_KEY**
-  
-  #### Description:
-  
-  Update an API key
-  """
+  "\n#### Required Permissions:\n\n- Action: **UPDATE_ANY**\n- Resource: **API_KEY**\n\n#### Description:\n\nUpdate an API key"
   update(input: UpdateApiKeyInput!): ApiKey!
 }
 
@@ -1185,83 +1419,44 @@ input UpdateApiKeyInput {
   permissions: [AddPermissionInput!]
 }
 
+"""Customization related mutations"""
+type CustomizationMutations {
+  "\n#### Required Permissions:\n\n- Action: **UPDATE_ANY**\n- Resource: **CUSTOMIZATIONS**\n\n#### Description:\n\nUpdate the UI theme (writes dynamix.cfg)"
+  setTheme(
+    """Theme to apply"""
+    theme: ThemeName!
+  ): Theme!
+
+  "\n#### Required Permissions:\n\n- Action: **UPDATE_ANY**\n- Resource: **CUSTOMIZATIONS**\n\n#### Description:\n\nUpdate the display locale (language)"
+  setLocale(
+    """Locale code to apply (e.g. en_US)"""
+    locale: String!
+  ): String!
+}
+
 """
 Parity check related mutations, WIP, response types and functionaliy will change
 """
 type ParityCheckMutations {
-  """
-  #### Required Permissions:
-  
-  - Action: **UPDATE_ANY**
-  - Resource: **ARRAY**
-  
-  #### Description:
-  
-  Start a parity check
-  """
+  "\n#### Required Permissions:\n\n- Action: **UPDATE_ANY**\n- Resource: **ARRAY**\n\n#### Description:\n\nStart a parity check"
   start(correct: Boolean!): JSON!
 
-  """
-  #### Required Permissions:
-  
-  - Action: **UPDATE_ANY**
-  - Resource: **ARRAY**
-  
-  #### Description:
-  
-  Pause a parity check
-  """
+  "\n#### Required Permissions:\n\n- Action: **UPDATE_ANY**\n- Resource: **ARRAY**\n\n#### Description:\n\nPause a parity check"
   pause: JSON!
 
-  """
-  #### Required Permissions:
-  
-  - Action: **UPDATE_ANY**
-  - Resource: **ARRAY**
-  
-  #### Description:
-  
-  Resume a parity check
-  """
+  "\n#### Required Permissions:\n\n- Action: **UPDATE_ANY**\n- Resource: **ARRAY**\n\n#### Description:\n\nResume a parity check"
   resume: JSON!
 
-  """
-  #### Required Permissions:
-  
-  - Action: **UPDATE_ANY**
-  - Resource: **ARRAY**
-  
-  #### Description:
-  
-  Cancel a parity check
-  """
+  "\n#### Required Permissions:\n\n- Action: **UPDATE_ANY**\n- Resource: **ARRAY**\n\n#### Description:\n\nCancel a parity check"
   cancel: JSON!
 }
 
 """RClone related mutations"""
 type RCloneMutations {
-  """
-  #### Required Permissions:
-  
-  - Action: **CREATE_ANY**
-  - Resource: **FLASH**
-  
-  #### Description:
-  
-  Create a new RClone remote
-  """
+  "\n#### Required Permissions:\n\n- Action: **CREATE_ANY**\n- Resource: **FLASH**\n\n#### Description:\n\nCreate a new RClone remote"
   createRCloneRemote(input: CreateRCloneRemoteInput!): RCloneRemote!
 
-  """
-  #### Required Permissions:
-  
-  - Action: **DELETE_ANY**
-  - Resource: **FLASH**
-  
-  #### Description:
-  
-  Delete an existing RClone remote
-  """
+  "\n#### Required Permissions:\n\n- Action: **DELETE_ANY**\n- Resource: **FLASH**\n\n#### Description:\n\nDelete an existing RClone remote"
   deleteRCloneRemote(input: DeleteRCloneRemoteInput!): Boolean!
 }
 
@@ -1275,227 +1470,149 @@ input DeleteRCloneRemoteInput {
   name: String!
 }
 
-type Config implements Node {
-  id: PrefixedID!
-  valid: Boolean
-  error: String
+"""Onboarding related mutations"""
+type OnboardingMutations {
+  "\n#### Required Permissions:\n\n- Action: **UPDATE_ANY**\n- Resource: **WELCOME**\n\n#### Description:\n\nMark onboarding as completed"
+  completeOnboarding: Onboarding!
+
+  "\n#### Required Permissions:\n\n- Action: **UPDATE_ANY**\n- Resource: **WELCOME**\n\n#### Description:\n\nReset onboarding progress (for testing)"
+  resetOnboarding: Onboarding!
+
+  "\n#### Required Permissions:\n\n- Action: **UPDATE_ANY**\n- Resource: **WELCOME**\n\n#### Description:\n\nForce the onboarding modal open"
+  openOnboarding: Onboarding!
+
+  "\n#### Required Permissions:\n\n- Action: **UPDATE_ANY**\n- Resource: **WELCOME**\n\n#### Description:\n\nClose the onboarding modal"
+  closeOnboarding: Onboarding!
+
+  "\n#### Required Permissions:\n\n- Action: **UPDATE_ANY**\n- Resource: **WELCOME**\n\n#### Description:\n\nTemporarily bypass onboarding in API memory"
+  bypassOnboarding: Onboarding!
+
+  "\n#### Required Permissions:\n\n- Action: **UPDATE_ANY**\n- Resource: **WELCOME**\n\n#### Description:\n\nClear the temporary onboarding bypass"
+  resumeOnboarding: Onboarding!
+
+  "\n#### Required Permissions:\n\n- Action: **UPDATE_ANY**\n- Resource: **WELCOME**\n\n#### Description:\n\nOverride onboarding state for testing (in-memory only)"
+  setOnboardingOverride(input: OnboardingOverrideInput!): Onboarding!
+
+  "\n#### Required Permissions:\n\n- Action: **UPDATE_ANY**\n- Resource: **WELCOME**\n\n#### Description:\n\nClear onboarding override state and reload from disk"
+  clearOnboardingOverride: Onboarding!
+
+  "\n#### Required Permissions:\n\n- Action: **UPDATE_ANY**\n- Resource: **WELCOME**\n\n#### Description:\n\nCreate and configure internal boot pool via emcmd operations"
+  createInternalBootPool(input: CreateInternalBootPoolInput!): OnboardingInternalBootResult!
+
+  "\n#### Required Permissions:\n\n- Action: **UPDATE_ANY**\n- Resource: **WELCOME**\n\n#### Description:\n\nRefresh the internal boot onboarding context from the latest emhttp state"
+  refreshInternalBootContext: OnboardingInternalBootContext!
 }
 
-type PublicPartnerInfo {
-  partnerName: String
-
-  """Indicates if a partner logo exists"""
-  hasPartnerLogo: Boolean!
-  partnerUrl: String
-
-  """
-  The path to the partner logo image on the flash drive, relative to the activation code file
-  """
-  partnerLogoUrl: String
+"""Onboarding override input for testing"""
+input OnboardingOverrideInput {
+  onboarding: OnboardingOverrideCompletionInput
+  activationCode: ActivationCodeOverrideInput
+  partnerInfo: PartnerInfoOverrideInput
+  registrationState: RegistrationState
 }
 
-type ActivationCode {
+"""Onboarding completion override input"""
+input OnboardingOverrideCompletionInput {
+  completed: Boolean
+  completedAtVersion: String
+  forceOpen: Boolean
+}
+
+"""Activation code override input"""
+input ActivationCodeOverrideInput {
   code: String
-  partnerName: String
-  partnerUrl: String
-  serverName: String
-  sysModel: String
-  comment: String
+  partner: PartnerConfigInput
+  branding: BrandingConfigInput
+  system: SystemConfigInput
+}
+
+input PartnerConfigInput {
+  name: String
+  url: String
+  hardwareSpecsUrl: String
+  manualUrl: String
+  supportUrl: String
+  extraLinks: [PartnerLinkInput!]
+}
+
+"""Partner link input for custom links"""
+input PartnerLinkInput {
+  title: String!
+  url: String!
+}
+
+input BrandingConfigInput {
   header: String
   headermetacolor: String
   background: String
   showBannerGradient: Boolean
   theme: String
+  bannerImage: String
+  caseModel: String
+  caseModelImage: String
+  partnerLogoLightUrl: String
+  partnerLogoDarkUrl: String
+  hasPartnerLogo: Boolean
+  onboardingTitle: String
+  onboardingSubtitle: String
+  onboardingTitleFreshInstall: String
+  onboardingSubtitleFreshInstall: String
+  onboardingTitleUpgrade: String
+  onboardingSubtitleUpgrade: String
+  onboardingTitleDowngrade: String
+  onboardingSubtitleDowngrade: String
+  onboardingTitleIncomplete: String
+  onboardingSubtitleIncomplete: String
 }
 
-type Customization {
+input SystemConfigInput {
+  serverName: String
+  model: String
+  comment: String
+}
+
+"""Partner info override input"""
+input PartnerInfoOverrideInput {
+  partner: PartnerConfigInput
+  branding: BrandingConfigInput
+}
+
+"""Input for creating an internal boot pool during onboarding"""
+input CreateInternalBootPoolInput {
+  poolName: String!
+  devices: [String!]!
+  bootSizeMiB: Int!
+  updateBios: Boolean!
+  reboot: Boolean
+}
+
+"""Unraid plugin management mutations"""
+type UnraidPluginsMutations {
+  "\n#### Required Permissions:\n\n- Action: **UPDATE_ANY**\n- Resource: **CONFIG**\n\n#### Description:\n\nInstall an Unraid plugin and track installation progress"
+  installPlugin(input: InstallPluginInput!): PluginInstallOperation!
+
+  "\n#### Required Permissions:\n\n- Action: **UPDATE_ANY**\n- Resource: **CONFIG**\n\n#### Description:\n\nInstall an Unraid language pack and track installation progress"
+  installLanguage(input: InstallPluginInput!): PluginInstallOperation!
+}
+
+"""Input payload for installing a plugin"""
+input InstallPluginInput {
+  """Plugin installation URL (.plg)"""
+  url: String!
+
+  """Optional human-readable plugin name used for logging"""
+  name: String
+
   """
-  #### Required Permissions:
-  
-  - Action: **READ_ANY**
-  - Resource: **ACTIVATION_CODE**
+  Force installation even when plugin is already present. Defaults to true to mirror the existing UI behaviour.
   """
-  activationCode: ActivationCode
-  partnerInfo: PublicPartnerInfo
-  theme: Theme!
+  forced: Boolean
 }
 
-type Theme {
-  """The theme name"""
-  name: ThemeName!
-
-  """Whether to show the header banner image"""
-  showBannerImage: Boolean!
-
-  """Whether to show the banner gradient"""
-  showBannerGradient: Boolean!
-
-  """Whether to show the description in the header"""
-  showHeaderDescription: Boolean!
-
-  """The background color of the header"""
-  headerBackgroundColor: String
-
-  """The text color of the header"""
-  headerPrimaryTextColor: String
-
-  """The secondary text color of the header"""
-  headerSecondaryTextColor: String
-}
-
-"""The theme name"""
-enum ThemeName {
-  azure
-  black
-  gray
-  white
-}
-
-type ExplicitStatusItem {
-  name: String!
-  updateStatus: UpdateStatus!
-}
-
-"""Update status of a container."""
-enum UpdateStatus {
-  UP_TO_DATE
-  UPDATE_AVAILABLE
-  REBUILD_READY
-  UNKNOWN
-}
-
-type ContainerPort {
-  ip: String
-  privatePort: Port
-  publicPort: Port
-  type: ContainerPortType!
-}
-
-"""
-A field whose value is a valid TCP port within the range of 0 to 65535: https://en.wikipedia.org/wiki/Transmission_Control_Protocol#TCP_ports
-"""
-scalar Port
-
-enum ContainerPortType {
-  TCP
-  UDP
-}
-
-type ContainerHostConfig {
-  networkMode: String!
-}
-
-type DockerContainer implements Node {
+type Config implements Node {
   id: PrefixedID!
-  names: [String!]!
-  image: String!
-  imageId: String!
-  command: String!
-  created: Int!
-  ports: [ContainerPort!]!
-
-  """Total size of all files in the container (in bytes)"""
-  sizeRootFs: BigInt
-  labels: JSON
-  state: ContainerState!
-  status: String!
-  hostConfig: ContainerHostConfig
-  networkSettings: JSON
-  mounts: [JSON!]
-  autoStart: Boolean!
-}
-
-enum ContainerState {
-  RUNNING
-  EXITED
-}
-
-type DockerNetwork implements Node {
-  id: PrefixedID!
-  name: String!
-  created: String!
-  scope: String!
-  driver: String!
-  enableIPv6: Boolean!
-  ipam: JSON!
-  internal: Boolean!
-  attachable: Boolean!
-  ingress: Boolean!
-  configFrom: JSON!
-  configOnly: Boolean!
-  containers: JSON!
-  options: JSON!
-  labels: JSON!
-}
-
-type Docker implements Node {
-  id: PrefixedID!
-
-  """
-  #### Required Permissions:
-  
-  - Action: **READ_ANY**
-  - Resource: **DOCKER**
-  """
-  containers(skipCache: Boolean! = false): [DockerContainer!]!
-
-  """
-  #### Required Permissions:
-  
-  - Action: **READ_ANY**
-  - Resource: **DOCKER**
-  """
-  networks(skipCache: Boolean! = false): [DockerNetwork!]!
-}
-
-type ResolvedOrganizerView {
-  id: String!
-  name: String!
-  root: ResolvedOrganizerEntry!
-  prefs: JSON
-}
-
-union ResolvedOrganizerEntry = ResolvedOrganizerFolder | OrganizerContainerResource | OrganizerResource
-
-type ResolvedOrganizerFolder {
-  id: String!
-  type: String!
-  name: String!
-  children: [ResolvedOrganizerEntry!]!
-}
-
-type OrganizerContainerResource {
-  id: String!
-  type: String!
-  name: String!
-  meta: DockerContainer
-}
-
-type OrganizerResource {
-  id: String!
-  type: String!
-  name: String!
-  meta: JSON
-}
-
-type ResolvedOrganizerV1 {
-  version: Float!
-  views: [ResolvedOrganizerView!]!
-}
-
-type FlashBackupStatus {
-  """Status message indicating the outcome of the backup initiation."""
-  status: String!
-
-  """Job ID if available, can be used to check job status."""
-  jobId: String
-}
-
-type Flash implements Node {
-  id: PrefixedID!
-  guid: String!
-  vendor: String!
-  product: String!
+  valid: Boolean
+  error: String
 }
 
 type InfoGpu implements Node {
@@ -1600,77 +1717,6 @@ type InfoDevices implements Node {
 
   """List of USB devices"""
   usb: [InfoUsb!]
-}
-
-type InfoDisplayCase implements Node {
-  id: PrefixedID!
-
-  """Case image URL"""
-  url: String!
-
-  """Case icon identifier"""
-  icon: String!
-
-  """Error message if any"""
-  error: String!
-
-  """Base64 encoded case image"""
-  base64: String!
-}
-
-type InfoDisplay implements Node {
-  id: PrefixedID!
-
-  """Case display configuration"""
-  case: InfoDisplayCase!
-
-  """UI theme name"""
-  theme: ThemeName!
-
-  """Temperature unit (C or F)"""
-  unit: Temperature!
-
-  """Enable UI scaling"""
-  scale: Boolean!
-
-  """Show tabs in UI"""
-  tabs: Boolean!
-
-  """Enable UI resize"""
-  resize: Boolean!
-
-  """Show WWN identifiers"""
-  wwn: Boolean!
-
-  """Show totals"""
-  total: Boolean!
-
-  """Show usage statistics"""
-  usage: Boolean!
-
-  """Show text labels"""
-  text: Boolean!
-
-  """Warning temperature threshold"""
-  warning: Int!
-
-  """Critical temperature threshold"""
-  critical: Int!
-
-  """Hot temperature threshold"""
-  hot: Int!
-
-  """Maximum temperature threshold"""
-  max: Int
-
-  """Locale setting"""
-  locale: String
-}
-
-"""Temperature unit"""
-enum Temperature {
-  CELSIUS
-  FAHRENHEIT
 }
 
 """CPU load for a single core"""
@@ -1867,6 +1913,49 @@ type InfoMemory implements Node {
   layout: [MemoryLayout!]!
 }
 
+type InfoNetworkInterface implements Node {
+  id: PrefixedID!
+
+  """Interface name (e.g. eth0)"""
+  name: String!
+
+  """Interface description/label"""
+  description: String
+
+  """MAC Address"""
+  macAddress: String
+
+  """Connection status"""
+  status: String
+
+  """IPv4 Protocol mode"""
+  protocol: String
+
+  """IPv4 Address"""
+  ipAddress: String
+
+  """IPv4 Netmask"""
+  netmask: String
+
+  """IPv4 Gateway"""
+  gateway: String
+
+  """Using DHCP for IPv4"""
+  useDhcp: Boolean
+
+  """IPv6 Address"""
+  ipv6Address: String
+
+  """IPv6 Netmask"""
+  ipv6Netmask: String
+
+  """IPv6 Gateway"""
+  ipv6Gateway: String
+
+  """Using DHCP for IPv6"""
+  useDhcp6: Boolean
+}
+
 type InfoOs implements Node {
   id: PrefixedID!
 
@@ -2042,6 +2131,338 @@ type Info implements Node {
 
   """Software versions"""
   versions: InfoVersions!
+
+  """Network interfaces"""
+  networkInterfaces: [InfoNetworkInterface!]!
+
+  """Primary management interface"""
+  primaryNetwork: InfoNetworkInterface
+}
+
+type ExplicitStatusItem {
+  name: String!
+  updateStatus: UpdateStatus!
+}
+
+"""Update status of a container."""
+enum UpdateStatus {
+  UP_TO_DATE
+  UPDATE_AVAILABLE
+  REBUILD_READY
+  UNKNOWN
+}
+
+type ContainerPort {
+  ip: String
+  privatePort: Port
+  publicPort: Port
+  type: ContainerPortType!
+}
+
+"""
+A field whose value is a valid TCP port within the range of 0 to 65535: https://en.wikipedia.org/wiki/Transmission_Control_Protocol#TCP_ports
+"""
+scalar Port
+
+enum ContainerPortType {
+  TCP
+  UDP
+}
+
+type DockerPortConflictContainer {
+  id: PrefixedID!
+  name: String!
+}
+
+type DockerContainerPortConflict {
+  privatePort: Port!
+  type: ContainerPortType!
+  containers: [DockerPortConflictContainer!]!
+}
+
+type DockerLanPortConflict {
+  lanIpPort: String!
+  publicPort: Port
+  type: ContainerPortType!
+  containers: [DockerPortConflictContainer!]!
+}
+
+type DockerPortConflicts {
+  containerPorts: [DockerContainerPortConflict!]!
+  lanPorts: [DockerLanPortConflict!]!
+}
+
+type ContainerHostConfig {
+  networkMode: String!
+}
+
+type DockerContainer implements Node {
+  id: PrefixedID!
+  names: [String!]!
+  image: String!
+  imageId: String!
+  command: String!
+  created: Int!
+  ports: [ContainerPort!]!
+
+  """List of LAN-accessible host:port values"""
+  lanIpPorts: [String!]
+
+  """Total size of all files in the container (in bytes)"""
+  sizeRootFs: BigInt
+
+  """Size of writable layer (in bytes)"""
+  sizeRw: BigInt
+
+  """Size of container logs (in bytes)"""
+  sizeLog: BigInt
+  labels: JSON
+  state: ContainerState!
+  status: String!
+  hostConfig: ContainerHostConfig
+  networkSettings: JSON
+  mounts: [JSON!]
+  autoStart: Boolean!
+
+  """Zero-based order in the auto-start list"""
+  autoStartOrder: Int
+
+  """Wait time in seconds applied after start"""
+  autoStartWait: Int
+  templatePath: String
+
+  "\n#### Required Permissions:\n\n- Action: **READ_ANY**\n- Resource: **DOCKER**\n\n#### Description:\n\nProject/Product homepage URL"
+  projectUrl: String
+
+  "\n#### Required Permissions:\n\n- Action: **READ_ANY**\n- Resource: **DOCKER**\n\n#### Description:\n\nRegistry/Docker Hub URL"
+  registryUrl: String
+
+  "\n#### Required Permissions:\n\n- Action: **READ_ANY**\n- Resource: **DOCKER**\n\n#### Description:\n\nSupport page/thread URL"
+  supportUrl: String
+
+  "\n#### Required Permissions:\n\n- Action: **READ_ANY**\n- Resource: **DOCKER**\n\n#### Description:\n\nIcon URL"
+  iconUrl: String
+
+  "\n#### Required Permissions:\n\n- Action: **READ_ANY**\n- Resource: **DOCKER**\n\n#### Description:\n\nResolved WebUI URL from template"
+  webUiUrl: String
+
+  "\n#### Required Permissions:\n\n- Action: **READ_ANY**\n- Resource: **DOCKER**\n\n#### Description:\n\nShell to use for console access (from template)"
+  shell: String
+
+  "\n#### Required Permissions:\n\n- Action: **READ_ANY**\n- Resource: **DOCKER**\n\n#### Description:\n\nPort mappings from template (used when container is not running)"
+  templatePorts: [ContainerPort!]
+
+  """Whether the container is orphaned (no template found)"""
+  isOrphaned: Boolean!
+
+  "\n#### Required Permissions:\n\n- Action: **READ_ANY**\n- Resource: **DOCKER**"
+  isUpdateAvailable: Boolean
+
+  "\n#### Required Permissions:\n\n- Action: **READ_ANY**\n- Resource: **DOCKER**"
+  isRebuildReady: Boolean
+
+  "\n#### Required Permissions:\n\n- Action: **READ_ANY**\n- Resource: **DOCKER**\n\n#### Description:\n\nWhether Tailscale is enabled for this container"
+  tailscaleEnabled: Boolean!
+
+  "\n#### Required Permissions:\n\n- Action: **READ_ANY**\n- Resource: **DOCKER**\n\n#### Description:\n\nTailscale status for this container (fetched via docker exec)"
+  tailscaleStatus(forceRefresh: Boolean = false): TailscaleStatus
+}
+
+enum ContainerState {
+  RUNNING
+  PAUSED
+  EXITED
+}
+
+type DockerNetwork implements Node {
+  id: PrefixedID!
+  name: String!
+  created: String!
+  scope: String!
+  driver: String!
+  enableIPv6: Boolean!
+  ipam: JSON!
+  internal: Boolean!
+  attachable: Boolean!
+  ingress: Boolean!
+  configFrom: JSON!
+  configOnly: Boolean!
+  containers: JSON!
+  options: JSON!
+  labels: JSON!
+}
+
+type DockerContainerLogLine {
+  timestamp: DateTime!
+  message: String!
+}
+
+type DockerContainerLogs {
+  containerId: PrefixedID!
+  lines: [DockerContainerLogLine!]!
+
+  """
+  Cursor that can be passed back through the since argument to continue streaming logs.
+  """
+  cursor: DateTime
+}
+
+type DockerContainerStats {
+  id: PrefixedID!
+
+  """CPU Usage Percentage"""
+  cpuPercent: Float!
+
+  """Memory Usage String (e.g. 100MB / 1GB)"""
+  memUsage: String!
+
+  """Memory Usage Percentage"""
+  memPercent: Float!
+
+  """Network I/O String (e.g. 100MB / 1GB)"""
+  netIO: String!
+
+  """Block I/O String (e.g. 100MB / 1GB)"""
+  blockIO: String!
+}
+
+"""Tailscale exit node connection status"""
+type TailscaleExitNodeStatus {
+  """Whether the exit node is online"""
+  online: Boolean!
+
+  """Tailscale IPs of the exit node"""
+  tailscaleIps: [String!]
+}
+
+"""Tailscale status for a Docker container"""
+type TailscaleStatus {
+  """Whether Tailscale is online in the container"""
+  online: Boolean!
+
+  """Current Tailscale version"""
+  version: String
+
+  """Latest available Tailscale version"""
+  latestVersion: String
+
+  """Whether a Tailscale update is available"""
+  updateAvailable: Boolean!
+
+  """Configured Tailscale hostname"""
+  hostname: String
+
+  """Actual Tailscale DNS name"""
+  dnsName: String
+
+  """DERP relay code"""
+  relay: String
+
+  """DERP relay region name"""
+  relayName: String
+
+  """Tailscale IPv4 and IPv6 addresses"""
+  tailscaleIps: [String!]
+
+  """Advertised subnet routes"""
+  primaryRoutes: [String!]
+
+  """Whether this container is an exit node"""
+  isExitNode: Boolean!
+
+  """Status of the connected exit node (if using one)"""
+  exitNodeStatus: TailscaleExitNodeStatus
+
+  """Tailscale Serve/Funnel WebUI URL"""
+  webUiUrl: String
+
+  """Tailscale key expiry date"""
+  keyExpiry: DateTime
+
+  """Days until key expires"""
+  keyExpiryDays: Int
+
+  """Whether the Tailscale key has expired"""
+  keyExpired: Boolean!
+
+  """Tailscale backend state (Running, NeedsLogin, Stopped, etc.)"""
+  backendState: String
+
+  """Authentication URL if Tailscale needs login"""
+  authUrl: String
+}
+
+type Docker implements Node {
+  id: PrefixedID!
+
+  "\n#### Required Permissions:\n\n- Action: **READ_ANY**\n- Resource: **DOCKER**"
+  containers: [DockerContainer!]!
+
+  "\n#### Required Permissions:\n\n- Action: **READ_ANY**\n- Resource: **DOCKER**"
+  networks: [DockerNetwork!]!
+
+  "\n#### Required Permissions:\n\n- Action: **READ_ANY**\n- Resource: **DOCKER**"
+  portConflicts: DockerPortConflicts!
+
+  "\n#### Required Permissions:\n\n- Action: **READ_ANY**\n- Resource: **DOCKER**\n\n#### Description:\n\nAccess container logs. Requires specifying a target container id through resolver arguments."
+  logs(id: PrefixedID!, since: DateTime, tail: Int): DockerContainerLogs!
+
+  "\n#### Required Permissions:\n\n- Action: **READ_ANY**\n- Resource: **DOCKER**"
+  container(id: PrefixedID!): DockerContainer
+
+  "\n#### Required Permissions:\n\n- Action: **READ_ANY**\n- Resource: **DOCKER**"
+  organizer: ResolvedOrganizerV1!
+
+  "\n#### Required Permissions:\n\n- Action: **READ_ANY**\n- Resource: **DOCKER**"
+  containerUpdateStatuses: [ExplicitStatusItem!]!
+}
+
+type DockerTemplateSyncResult {
+  scanned: Int!
+  matched: Int!
+  skipped: Int!
+  errors: [String!]!
+}
+
+type ResolvedOrganizerView {
+  id: String!
+  name: String!
+  rootId: String!
+  flatEntries: [FlatOrganizerEntry!]!
+  prefs: JSON
+}
+
+type ResolvedOrganizerV1 {
+  version: Float!
+  views: [ResolvedOrganizerView!]!
+}
+
+type FlatOrganizerEntry {
+  id: String!
+  type: String!
+  name: String!
+  parentId: String
+  depth: Float!
+  position: Float!
+  path: [String!]!
+  hasChildren: Boolean!
+  childrenIds: [String!]!
+  meta: DockerContainer
+}
+
+type FlashBackupStatus {
+  """Status message indicating the outcome of the backup initiation."""
+  status: String!
+
+  """Job ID if available, can be used to check job status."""
+  jobId: String
+}
+
+type Flash implements Node {
+  id: PrefixedID!
+  guid: String!
+  vendor: String!
+  product: String!
 }
 
 type LogFile {
@@ -2072,6 +2493,106 @@ type LogFileContent {
   startLine: Int
 }
 
+type TemperatureReading {
+  """Temperature value"""
+  value: Float!
+
+  """Temperature unit"""
+  unit: TemperatureUnit!
+
+  """Timestamp of reading"""
+  timestamp: DateTime!
+
+  """Temperature status"""
+  status: TemperatureStatus!
+}
+
+enum TemperatureUnit {
+  CELSIUS
+  FAHRENHEIT
+  KELVIN
+  RANKINE
+}
+
+enum TemperatureStatus {
+  NORMAL
+  WARNING
+  CRITICAL
+  UNKNOWN
+}
+
+type TemperatureSensor implements Node {
+  id: PrefixedID!
+
+  """Sensor name"""
+  name: String!
+
+  """Type of sensor"""
+  type: SensorType!
+
+  """Physical location"""
+  location: String
+
+  """Current temperature"""
+  current: TemperatureReading!
+
+  """Minimum recorded"""
+  min: TemperatureReading
+
+  """Maximum recorded"""
+  max: TemperatureReading
+
+  """Warning threshold"""
+  warning: Float
+
+  """Critical threshold"""
+  critical: Float
+
+  """Historical readings for this sensor"""
+  history: [TemperatureReading!]
+}
+
+"""Type of temperature sensor"""
+enum SensorType {
+  CPU_PACKAGE
+  CPU_CORE
+  MOTHERBOARD
+  CHIPSET
+  GPU
+  DISK
+  NVME
+  AMBIENT
+  VRM
+  CUSTOM
+}
+
+type TemperatureSummary {
+  """Average temperature across all sensors"""
+  average: Float!
+
+  """Hottest sensor"""
+  hottest: TemperatureSensor!
+
+  """Coolest sensor"""
+  coolest: TemperatureSensor!
+
+  """Count of sensors at warning level"""
+  warningCount: Int!
+
+  """Count of sensors at critical level"""
+  criticalCount: Int!
+}
+
+type TemperatureMetrics implements Node {
+  id: PrefixedID!
+
+  """All temperature sensors"""
+  sensors: [TemperatureSensor!]!
+
+  """Temperature summary"""
+  summary: TemperatureSummary!
+}
+
 """System metrics including CPU and memory utilization"""
 type Metrics implements Node {
   id: PrefixedID!
@@ -2081,6 +2602,43 @@ type Metrics implements Node {
 
   """Current memory utilization metrics"""
   memory: MemoryUtilization
+
+  """Temperature metrics"""
+  temperature: TemperatureMetrics
+}
+
+type SensorConfig {
+  enabled: Boolean
+}
+
+type LmSensorsConfig {
+  enabled: Boolean
+  config_path: String
+}
+
+type IpmiConfig {
+  enabled: Boolean
+  args: [String!]
+}
+
+type TemperatureSensorsConfig {
+  lm_sensors: LmSensorsConfig
+  smartctl: SensorConfig
+  ipmi: IpmiConfig
+}
+
+type TemperatureThresholdsConfig {
+  cpu_warning: Int
+  cpu_critical: Int
+  disk_warning: Int
+  disk_critical: Int
+  warning: Int
+  critical: Int
+}
+
+type TemperatureHistoryConfig {
+  max_readings: Int
+  retention_ms: Int
 }
 
 type Owner {
@@ -2102,6 +2660,9 @@ type Server implements Node {
   guid: String!
   apikey: String!
   name: String!
+
+  """Server description/comment"""
+  comment: String
 
   """Whether this server is online or offline"""
   status: ServerStatus!
@@ -2229,6 +2790,30 @@ type PublicOidcProvider {
   buttonStyle: String
 }
 
+"""System time configuration and current status"""
+type SystemTime {
+  """Current server time in ISO-8601 format (UTC)"""
+  currentTime: String!
+
+  """IANA timezone identifier currently in use"""
+  timeZone: String!
+
+  """Whether NTP/PTP time synchronization is enabled"""
+  useNtp: Boolean!
+
+  """Configured NTP servers (empty strings indicate unused slots)"""
+  ntpServers: [String!]!
+}
+
+"""Selectable timezone option from the system list"""
+type TimeZoneOption {
+  """IANA timezone identifier"""
+  value: String!
+
+  """Display label for the timezone"""
+  label: String!
+}
+
 type UPSBattery {
   """
   Battery charge level as a percentage (0-100). Unit: percent (%). Example: 100 means battery is fully charged
@@ -2261,6 +2846,16 @@ type UPSPower {
   Current load on the UPS as a percentage of its capacity. Unit: percent (%). Example: 25 means UPS is loaded at 25% of its maximum capacity
   """
   loadPercentage: Int!
+
+  """
+  Nominal power capacity of the UPS. Unit: watts (W). Example: 1000 means the UPS is rated for 1000 watts. This is the maximum power the UPS can deliver
+  """
+  nominalPower: Int
+
+  """
+  Current power consumption calculated from load percentage and nominal power. Unit: watts (W). Example: 350 means 350 watts currently being used. Calculated as: nominalPower * (loadPercentage / 100)
+  """
+  currentPower: Float
 }
 
 type UPSDevice {
@@ -2587,326 +3182,114 @@ input AccessUrlObjectInput {
   name: String
 }
 
-"""
-### Description:
-
-ID scalar type that prefixes the underlying ID with the server identifier on output and strips it on input.
-
-We use this scalar type to ensure that the ID is unique across all servers, allowing the same underlying resource ID to be used across different server instances.
-
-#### Input Behavior:
-
-When providing an ID as input (e.g., in arguments or input objects), the server identifier prefix ('<serverId>:') is optional.
-
-- If the prefix is present (e.g., '123:456'), it will be automatically stripped, and only the underlying ID ('456') will be used internally.
-- If the prefix is absent (e.g., '456'), the ID will be used as-is.
-
-This makes it flexible for clients, as they don't strictly need to know or provide the server ID.
-
-#### Output Behavior:
-
-When an ID is returned in the response (output), it will *always* be prefixed with the current server's unique identifier (e.g., '123:456').
-
-#### Example:
-
-Note: The server identifier is '123' in this example.
-
-##### Input (Prefix Optional):
-```graphql
-# Both of these are valid inputs resolving to internal ID '456'
-{
-  someQuery(id: "123:456") { ... }
-  anotherQuery(id: "456") { ... }
-}
-```
-
-##### Output (Prefix Always Added):
-```graphql
-# Assuming internal ID is '456'
-{
-  "data": {
-    "someResource": {
-      "id": "123:456" 
-    }
-  }
-}
-```
-"""
+"\n### Description:\n\nID scalar type that prefixes the underlying ID with the server identifier on output and strips it on input.\n\nWe use this scalar type to ensure that the ID is unique across all servers, allowing the same underlying resource ID to be used across different server instances.\n\n#### Input Behavior:\n\nWhen providing an ID as input (e.g., in arguments or input objects), the server identifier prefix ('<serverId>:') is optional.\n\n- If the prefix is present (e.g., '123:456'), it will be automatically stripped, and only the underlying ID ('456') will be used internally.\n- If the prefix is absent (e.g., '456'), the ID will be used as-is.\n\nThis makes it flexible for clients, as they don't strictly need to know or provide the server ID.\n\n#### Output Behavior:\n\nWhen an ID is returned in the response (output), it will *always* be prefixed with the current server's unique identifier (e.g., '123:456').\n\n#### Example:\n\nNote: The server identifier is '123' in this example.\n\n##### Input (Prefix Optional):\n```graphql\n# Both of these are valid inputs resolving to internal ID '456'\n{\n  someQuery(id: \"123:456\") { ... }\n  anotherQuery(id: \"456\") { ... }\n}\n```\n\n##### Output (Prefix Always Added):\n```graphql\n# Assuming internal ID is '456'\n{\n  \"data\": {\n    \"someResource\": {\n      \"id\": \"123:456\" \n    }\n  }\n}\n```\n        "
 scalar PrefixedID
 
 type Query {
-  """
-  #### Required Permissions:
-  
-  - Action: **READ_ANY**
-  - Resource: **API_KEY**
-  """
+  "\n#### Required Permissions:\n\n- Action: **READ_ANY**\n- Resource: **API_KEY**"
   apiKeys: [ApiKey!]!
 
-  """
-  #### Required Permissions:
-  
-  - Action: **READ_ANY**
-  - Resource: **API_KEY**
-  """
+  "\n#### Required Permissions:\n\n- Action: **READ_ANY**\n- Resource: **API_KEY**"
   apiKey(id: PrefixedID!): ApiKey
 
-  """
-  #### Required Permissions:
-  
-  - Action: **READ_ANY**
-  - Resource: **PERMISSION**
-  
-  #### Description:
-  
-  All possible roles for API keys
-  """
+  "\n#### Required Permissions:\n\n- Action: **READ_ANY**\n- Resource: **PERMISSION**\n\n#### Description:\n\nAll possible roles for API keys"
   apiKeyPossibleRoles: [Role!]!
 
-  """
-  #### Required Permissions:
-  
-  - Action: **READ_ANY**
-  - Resource: **PERMISSION**
-  
-  #### Description:
-  
-  All possible permissions for API keys
-  """
+  "\n#### Required Permissions:\n\n- Action: **READ_ANY**\n- Resource: **PERMISSION**\n\n#### Description:\n\nAll possible permissions for API keys"
   apiKeyPossiblePermissions: [Permission!]!
 
-  """
-  #### Required Permissions:
-  
-  - Action: **READ_ANY**
-  - Resource: **PERMISSION**
-  
-  #### Description:
-  
-  Get the actual permissions that would be granted by a set of roles
-  """
+  "\n#### Required Permissions:\n\n- Action: **READ_ANY**\n- Resource: **PERMISSION**\n\n#### Description:\n\nGet the actual permissions that would be granted by a set of roles"
   getPermissionsForRoles(roles: [Role!]!): [Permission!]!
 
-  """
-  #### Required Permissions:
-  
-  - Action: **READ_ANY**
-  - Resource: **PERMISSION**
-  
-  #### Description:
-  
-  Preview the effective permissions for a combination of roles and explicit permissions
-  """
+  "\n#### Required Permissions:\n\n- Action: **READ_ANY**\n- Resource: **PERMISSION**\n\n#### Description:\n\nPreview the effective permissions for a combination of roles and explicit permissions"
   previewEffectivePermissions(roles: [Role!], permissions: [AddPermissionInput!]): [Permission!]!
 
   """Get all available authentication actions with possession"""
   getAvailableAuthActions: [AuthAction!]!
 
-  """
-  #### Required Permissions:
-  
-  - Action: **READ_ANY**
-  - Resource: **API_KEY**
-  
-  #### Description:
-  
-  Get JSON Schema for API key creation form
-  """
+  "\n#### Required Permissions:\n\n- Action: **READ_ANY**\n- Resource: **API_KEY**\n\n#### Description:\n\nGet JSON Schema for API key creation form"
   getApiKeyCreationFormSchema: ApiKeyFormSettings!
 
-  """
-  #### Required Permissions:
-  
-  - Action: **READ_ANY**
-  - Resource: **CONFIG**
-  """
+  "\n#### Required Permissions:\n\n- Action: **READ_ANY**\n- Resource: **CONFIG**"
   config: Config!
 
-  """
-  #### Required Permissions:
-  
-  - Action: **READ_ANY**
-  - Resource: **FLASH**
-  """
+  "\n#### Required Permissions:\n\n- Action: **READ_ANY**\n- Resource: **DISPLAY**"
+  display: InfoDisplay!
+
+  "\n#### Required Permissions:\n\n- Action: **READ_ANY**\n- Resource: **FLASH**"
   flash: Flash!
 
-  """
-  #### Required Permissions:
-  
-  - Action: **READ_ANY**
-  - Resource: **ME**
-  """
+  "\n#### Required Permissions:\n\n- Action: **READ_ANY**\n- Resource: **ME**"
   me: UserAccount!
 
-  """
-  #### Required Permissions:
-  
-  - Action: **READ_ANY**
-  - Resource: **NOTIFICATIONS**
-  
-  #### Description:
-  
-  Get all notifications
-  """
+  "\n#### Required Permissions:\n\n- Action: **READ_ANY**\n- Resource: **NOTIFICATIONS**\n\n#### Description:\n\nGet all notifications"
   notifications: Notifications!
 
-  """
-  #### Required Permissions:
-  
-  - Action: **READ_ANY**
-  - Resource: **ONLINE**
-  """
+  "\n#### Required Permissions:\n\n- Action: **READ_ANY**\n- Resource: **ONLINE**"
   online: Boolean!
 
-  """
-  #### Required Permissions:
-  
-  - Action: **READ_ANY**
-  - Resource: **OWNER**
-  """
+  "\n#### Required Permissions:\n\n- Action: **READ_ANY**\n- Resource: **OWNER**"
   owner: Owner!
 
-  """
-  #### Required Permissions:
-  
-  - Action: **READ_ANY**
-  - Resource: **REGISTRATION**
-  """
+  "\n#### Required Permissions:\n\n- Action: **READ_ANY**\n- Resource: **WELCOME**\n\n#### Description:\n\nGet the latest onboarding context for configuring internal boot"
+  internalBootContext: OnboardingInternalBootContext!
+
+  "\n#### Required Permissions:\n\n- Action: **READ_ANY**\n- Resource: **REGISTRATION**"
   registration: Registration
 
-  """
-  #### Required Permissions:
-  
-  - Action: **READ_ANY**
-  - Resource: **SERVERS**
-  """
+  "\n#### Required Permissions:\n\n- Action: **READ_ANY**\n- Resource: **SERVERS**"
   server: Server
 
-  """
-  #### Required Permissions:
-  
-  - Action: **READ_ANY**
-  - Resource: **SERVERS**
-  """
+  "\n#### Required Permissions:\n\n- Action: **READ_ANY**\n- Resource: **SERVERS**"
   servers: [Server!]!
 
-  """
-  #### Required Permissions:
-  
-  - Action: **READ_ANY**
-  - Resource: **SERVICES**
-  """
+  "\n#### Required Permissions:\n\n- Action: **READ_ANY**\n- Resource: **SERVICES**"
   services: [Service!]!
 
-  """
-  #### Required Permissions:
-  
-  - Action: **READ_ANY**
-  - Resource: **SHARE**
-  """
+  "\n#### Required Permissions:\n\n- Action: **READ_ANY**\n- Resource: **SHARE**"
   shares: [Share!]!
 
-  """
-  #### Required Permissions:
-  
-  - Action: **READ_ANY**
-  - Resource: **VARS**
-  """
+  "\n#### Required Permissions:\n\n- Action: **READ_ANY**\n- Resource: **VARS**"
   vars: Vars!
-  isInitialSetup: Boolean!
 
-  """
-  #### Required Permissions:
-  
-  - Action: **READ_ANY**
-  - Resource: **VMS**
-  
-  #### Description:
-  
-  Get information about all VMs on the system
-  """
+  "\n#### Required Permissions:\n\n- Action: **READ_ANY**\n- Resource: **VMS**\n\n#### Description:\n\nGet information about all VMs on the system"
   vms: Vms!
 
-  """
-  #### Required Permissions:
-  
-  - Action: **READ_ANY**
-  - Resource: **ARRAY**
-  """
+  "\n#### Required Permissions:\n\n- Action: **READ_ANY**\n- Resource: **ARRAY**"
   parityHistory: [ParityCheck!]!
 
-  """
-  #### Required Permissions:
-  
-  - Action: **READ_ANY**
-  - Resource: **ARRAY**
-  """
+  "\n#### Required Permissions:\n\n- Action: **READ_ANY**\n- Resource: **ARRAY**"
   array: UnraidArray!
 
-  """
-  #### Required Permissions:
-  
-  - Action: **READ_ANY**
-  - Resource: **CUSTOMIZATIONS**
-  """
+  "\n#### Required Permissions:\n\n- Action: **READ_ANY**\n- Resource: **CUSTOMIZATIONS**"
   customization: Customization
-  publicPartnerInfo: PublicPartnerInfo
+
+  """Whether the system is a fresh install (no license key)"""
+  isFreshInstall: Boolean!
   publicTheme: Theme!
 
-  """
-  #### Required Permissions:
-  
-  - Action: **READ_ANY**
-  - Resource: **DOCKER**
-  """
-  docker: Docker!
-
-  """
-  #### Required Permissions:
-  
-  - Action: **READ_ANY**
-  - Resource: **DISK**
-  """
-  disks: [Disk!]!
-
-  """
-  #### Required Permissions:
-  
-  - Action: **READ_ANY**
-  - Resource: **DISK**
-  """
-  disk(id: PrefixedID!): Disk!
-
-  """
-  #### Required Permissions:
-  
-  - Action: **READ_ANY**
-  - Resource: **FLASH**
-  """
-  rclone: RCloneBackupSettings!
-
-  """
-  #### Required Permissions:
-  
-  - Action: **READ_ANY**
-  - Resource: **INFO**
-  """
+  "\n#### Required Permissions:\n\n- Action: **READ_ANY**\n- Resource: **INFO**"
   info: Info!
 
-  """
-  #### Required Permissions:
-  
-  - Action: **READ_ANY**
-  - Resource: **LOGS**
-  """
+  "\n#### Required Permissions:\n\n- Action: **READ_ANY**\n- Resource: **DOCKER**"
+  docker: Docker!
+
+  "\n#### Required Permissions:\n\n- Action: **READ_ANY**\n- Resource: **DISK**"
+  disks: [Disk!]!
+
+  "\n#### Required Permissions:\n\n- Action: **READ_ANY**\n- Resource: **DISK**"
+  assignableDisks: [Disk!]!
+
+  "\n#### Required Permissions:\n\n- Action: **READ_ANY**\n- Resource: **DISK**"
+  disk(id: PrefixedID!): Disk!
+
+  "\n#### Required Permissions:\n\n- Action: **READ_ANY**\n- Resource: **FLASH**"
+  rclone: RCloneBackupSettings!
+
+  "\n#### Required Permissions:\n\n- Action: **READ_ANY**\n- Resource: **LOGS**"
   logFiles: [LogFile!]!
 
-  """
-  #### Required Permissions:
-  
-  - Action: **READ_ANY**
-  - Resource: **LOGS**
-  """
+  "\n#### Required Permissions:\n\n- Action: **READ_ANY**\n- Resource: **LOGS**"
   logFile(path: String!, lines: Int, startLine: Int): LogFileContent!
   settings: Settings!
   isSSOEnabled: Boolean!
@@ -2914,107 +3297,52 @@ type Query {
   """Get public OIDC provider information for login buttons"""
   publicOidcProviders: [PublicOidcProvider!]!
 
-  """
-  #### Required Permissions:
-  
-  - Action: **READ_ANY**
-  - Resource: **CONFIG**
-  
-  #### Description:
-  
-  Get all configured OIDC providers (admin only)
-  """
+  "\n#### Required Permissions:\n\n- Action: **READ_ANY**\n- Resource: **CONFIG**\n\n#### Description:\n\nGet all configured OIDC providers (admin only)"
   oidcProviders: [OidcProvider!]!
 
-  """
-  #### Required Permissions:
-  
-  - Action: **READ_ANY**
-  - Resource: **CONFIG**
-  
-  #### Description:
-  
-  Get a specific OIDC provider by ID
-  """
+  "\n#### Required Permissions:\n\n- Action: **READ_ANY**\n- Resource: **CONFIG**\n\n#### Description:\n\nGet a specific OIDC provider by ID"
   oidcProvider(id: PrefixedID!): OidcProvider
 
-  """
-  #### Required Permissions:
-  
-  - Action: **READ_ANY**
-  - Resource: **CONFIG**
-  
-  #### Description:
-  
-  Get the full OIDC configuration (admin only)
-  """
+  "\n#### Required Permissions:\n\n- Action: **READ_ANY**\n- Resource: **CONFIG**\n\n#### Description:\n\nGet the full OIDC configuration (admin only)"
   oidcConfiguration: OidcConfiguration!
 
-  """
-  #### Required Permissions:
-  
-  - Action: **READ_ANY**
-  - Resource: **CONFIG**
-  
-  #### Description:
-  
-  Validate an OIDC session token (internal use for CLI validation)
-  """
+  "\n#### Required Permissions:\n\n- Action: **READ_ANY**\n- Resource: **CONFIG**\n\n#### Description:\n\nValidate an OIDC session token (internal use for CLI validation)"
   validateOidcSession(token: String!): OidcSessionValidation!
 
-  """
-  #### Required Permissions:
-  
-  - Action: **READ_ANY**
-  - Resource: **INFO**
-  """
+  "\n#### Required Permissions:\n\n- Action: **READ_ANY**\n- Resource: **INFO**"
   metrics: Metrics!
+
+  "\n#### Required Permissions:\n\n- Action: **READ_ANY**\n- Resource: **VARS**\n\n#### Description:\n\nRetrieve current system time configuration"
+  systemTime: SystemTime!
+
+  "\n#### Required Permissions:\n\n- Action: **READ_ANY**\n- Resource: **CONFIG**\n\n#### Description:\n\nRetrieve available time zone options"
+  timeZoneOptions: [TimeZoneOption!]!
   upsDevices: [UPSDevice!]!
   upsDeviceById(id: String!): UPSDevice
   upsConfiguration: UPSConfiguration!
 
-  """
-  #### Required Permissions:
-  
-  - Action: **READ_ANY**
-  - Resource: **CONFIG**
-  
-  #### Description:
-  
-  List all installed plugins with their metadata
-  """
+  "\n#### Required Permissions:\n\n- Action: **READ_ANY**\n- Resource: **CONFIG**\n\n#### Description:\n\nRetrieve a plugin installation operation by identifier"
+  pluginInstallOperation(operationId: ID!): PluginInstallOperation
+
+  "\n#### Required Permissions:\n\n- Action: **READ_ANY**\n- Resource: **CONFIG**\n\n#### Description:\n\nList all tracked plugin installation operations"
+  pluginInstallOperations: [PluginInstallOperation!]!
+
+  "\n#### Required Permissions:\n\n- Action: **READ_ANY**\n- Resource: **CONFIG**\n\n#### Description:\n\nList installed Unraid OS plugins by .plg filename"
+  installedUnraidPlugins: [String!]!
+
+  "\n#### Required Permissions:\n\n- Action: **READ_ANY**\n- Resource: **CONFIG**\n\n#### Description:\n\nList all installed plugins with their metadata"
   plugins: [Plugin!]!
 
-  """
-  #### Required Permissions:
-  
-  - Action: **READ_ANY**
-  - Resource: **CONNECT**
-  """
+  "\n#### Required Permissions:\n\n- Action: **READ_ANY**\n- Resource: **CONNECT**"
   remoteAccess: RemoteAccess!
 
-  """
-  #### Required Permissions:
-  
-  - Action: **READ_ANY**
-  - Resource: **CONNECT**
-  """
+  "\n#### Required Permissions:\n\n- Action: **READ_ANY**\n- Resource: **CONNECT**"
   connect: Connect!
 
-  """
-  #### Required Permissions:
-  
-  - Action: **READ_ANY**
-  - Resource: **NETWORK**
-  """
+  "\n#### Required Permissions:\n\n- Action: **READ_ANY**\n- Resource: **NETWORK**"
   network: Network!
 
-  """
-  #### Required Permissions:
-  
-  - Action: **READ_ANY**
-  - Resource: **CLOUD**
-  """
+  "\n#### Required Permissions:\n\n- Action: **READ_ANY**\n- Resource: **CLOUD**"
   cloud: Cloud!
 }
 
@@ -3029,6 +3357,11 @@ type Mutation {
   """Marks a notification as archived."""
   archiveNotification(id: PrefixedID!): Notification!
   archiveNotifications(ids: [PrefixedID!]!): NotificationOverview!
+
+  """
+  Creates a notification if an equivalent unread notification does not already exist.
+  """
+  notifyIfUnique(input: NotificationData!): Notification
   archiveAll(importance: NotificationImportance): NotificationOverview!
 
   """Marks a notification as unread."""
@@ -3043,82 +3376,82 @@ type Mutation {
   vm: VmMutations!
   parityCheck: ParityCheckMutations!
   apiKey: ApiKeyMutations!
+  customization: CustomizationMutations!
   rclone: RCloneMutations!
+  onboarding: OnboardingMutations!
+  unraidPlugins: UnraidPluginsMutations!
+
+  "\n#### Required Permissions:\n\n- Action: **UPDATE_ANY**\n- Resource: **SERVERS**\n\n#### Description:\n\nUpdate server name, comment, and model"
+  updateServerIdentity(name: String!, comment: String, sysModel: String): Server!
+
+  "\n#### Required Permissions:\n\n- Action: **UPDATE_ANY**\n- Resource: **VARS**"
+  updateSshSettings(input: UpdateSshInput!): Vars!
+
+  "\n#### Required Permissions:\n\n- Action: **UPDATE_ANY**\n- Resource: **DOCKER**"
+  createDockerFolder(name: String!, parentId: String, childrenIds: [String!]): ResolvedOrganizerV1!
+
+  "\n#### Required Permissions:\n\n- Action: **UPDATE_ANY**\n- Resource: **DOCKER**"
+  setDockerFolderChildren(folderId: String, childrenIds: [String!]!): ResolvedOrganizerV1!
+
+  "\n#### Required Permissions:\n\n- Action: **UPDATE_ANY**\n- Resource: **DOCKER**"
+  deleteDockerEntries(entryIds: [String!]!): ResolvedOrganizerV1!
+
+  "\n#### Required Permissions:\n\n- Action: **UPDATE_ANY**\n- Resource: **DOCKER**"
+  moveDockerEntriesToFolder(sourceEntryIds: [String!]!, destinationFolderId: String!): ResolvedOrganizerV1!
+
+  "\n#### Required Permissions:\n\n- Action: **UPDATE_ANY**\n- Resource: **DOCKER**"
+  moveDockerItemsToPosition(sourceEntryIds: [String!]!, destinationFolderId: String!, position: Float!): ResolvedOrganizerV1!
+
+  "\n#### Required Permissions:\n\n- Action: **UPDATE_ANY**\n- Resource: **DOCKER**"
+  renameDockerFolder(folderId: String!, newName: String!): ResolvedOrganizerV1!
+
+  "\n#### Required Permissions:\n\n- Action: **UPDATE_ANY**\n- Resource: **DOCKER**"
+  createDockerFolderWithItems(name: String!, parentId: String, sourceEntryIds: [String!], position: Float): ResolvedOrganizerV1!
+
+  "\n#### Required Permissions:\n\n- Action: **UPDATE_ANY**\n- Resource: **DOCKER**"
+  updateDockerViewPreferences(viewId: String = "default", prefs: JSON!): ResolvedOrganizerV1!
+
+  "\n#### Required Permissions:\n\n- Action: **UPDATE_ANY**\n- Resource: **DOCKER**"
+  syncDockerTemplatePaths: DockerTemplateSyncResult!
+
+  "\n#### Required Permissions:\n\n- Action: **UPDATE_ANY**\n- Resource: **DOCKER**\n\n#### Description:\n\nReset Docker template mappings to defaults. Use this to recover from corrupted state."
+  resetDockerTemplateMappings: Boolean!
+
+  "\n#### Required Permissions:\n\n- Action: **UPDATE_ANY**\n- Resource: **DOCKER**"
+  refreshDockerDigests: Boolean!
 
   """Initiates a flash drive backup using a configured remote."""
   initiateFlashBackup(input: InitiateFlashBackupInput!): FlashBackupStatus!
 
-  """
-  #### Required Permissions:
-  
-  - Action: **UPDATE_ANY**
-  - Resource: **CONFIG**
-  """
+  "\n#### Required Permissions:\n\n- Action: **UPDATE_ANY**\n- Resource: **CONFIG**"
   updateSettings(input: JSON!): UpdateSettingsResponse!
+
+  "\n#### Required Permissions:\n\n- Action: **UPDATE_ANY**\n- Resource: **INFO**"
+  updateTemperatureConfig(input: TemperatureConfigInput!): Boolean!
+
+  "\n#### Required Permissions:\n\n- Action: **UPDATE_ANY**\n- Resource: **CONFIG**\n\n#### Description:\n\nUpdate system time configuration"
+  updateSystemTime(input: UpdateSystemTimeInput!): SystemTime!
   configureUps(config: UPSConfigInput!): Boolean!
 
-  """
-  #### Required Permissions:
-  
-  - Action: **UPDATE_ANY**
-  - Resource: **CONFIG**
-  
-  #### Description:
-  
-  Add one or more plugins to the API. Returns false if restart was triggered automatically, true if manual restart is required.
-  """
+  "\n#### Required Permissions:\n\n- Action: **UPDATE_ANY**\n- Resource: **CONFIG**\n\n#### Description:\n\nAdd one or more plugins to the API. Returns false if restart was triggered automatically, true if manual restart is required."
   addPlugin(input: PluginManagementInput!): Boolean!
 
-  """
-  #### Required Permissions:
-  
-  - Action: **DELETE_ANY**
-  - Resource: **CONFIG**
-  
-  #### Description:
-  
-  Remove one or more plugins from the API. Returns false if restart was triggered automatically, true if manual restart is required.
-  """
+  "\n#### Required Permissions:\n\n- Action: **DELETE_ANY**\n- Resource: **CONFIG**\n\n#### Description:\n\nRemove one or more plugins from the API. Returns false if restart was triggered automatically, true if manual restart is required."
   removePlugin(input: PluginManagementInput!): Boolean!
 
-  """
-  #### Required Permissions:
-  
-  - Action: **UPDATE_ANY**
-  - Resource: **CONFIG**
-  """
+  "\n#### Required Permissions:\n\n- Action: **UPDATE_ANY**\n- Resource: **CONFIG**"
   updateApiSettings(input: ConnectSettingsInput!): ConnectSettingsValues!
 
-  """
-  #### Required Permissions:
-  
-  - Action: **UPDATE_ANY**
-  - Resource: **CONNECT**
-  """
+  "\n#### Required Permissions:\n\n- Action: **UPDATE_ANY**\n- Resource: **CONNECT**"
   connectSignIn(input: ConnectSignInInput!): Boolean!
 
-  """
-  #### Required Permissions:
-  
-  - Action: **UPDATE_ANY**
-  - Resource: **CONNECT**
-  """
+  "\n#### Required Permissions:\n\n- Action: **UPDATE_ANY**\n- Resource: **CONNECT**"
   connectSignOut: Boolean!
 
-  """
-  #### Required Permissions:
-  
-  - Action: **UPDATE_ANY**
-  - Resource: **CONNECT**
-  """
+  "\n#### Required Permissions:\n\n- Action: **UPDATE_ANY**\n- Resource: **CONNECT**"
   setupRemoteAccess(input: SetupRemoteAccessInput!): Boolean!
 
-  """
-  #### Required Permissions:
-  
-  - Action: **UPDATE_ANY**
-  - Resource: **CONNECT__REMOTE_ACCESS**
-  """
+  "\n#### Required Permissions:\n\n- Action: **UPDATE_ANY**\n- Resource: **CONNECT__REMOTE_ACCESS**"
   enableDynamicRemoteAccess(input: EnableDynamicRemoteAccessInput!): Boolean!
 }
 
@@ -3128,6 +3461,13 @@ input NotificationData {
   description: String!
   importance: NotificationImportance!
   link: String
+}
+
+input UpdateSshInput {
+  enabled: Boolean!
+
+  """SSH Port (default 22)"""
+  port: Int!
 }
 
 input InitiateFlashBackupInput {
@@ -3144,6 +3484,67 @@ input InitiateFlashBackupInput {
   Additional options for the backup operation, such as --dry-run or --transfers.
   """
   options: JSON
+}
+
+input TemperatureConfigInput {
+  enabled: Boolean
+  polling_interval: Int
+  default_unit: TemperatureUnit
+  sensors: TemperatureSensorsConfigInput
+  thresholds: TemperatureThresholdsConfigInput
+  history: TemperatureHistoryConfigInput
+}
+
+input TemperatureSensorsConfigInput {
+  lm_sensors: LmSensorsConfigInput
+  smartctl: SensorConfigInput
+  ipmi: IpmiConfigInput
+}
+
+input LmSensorsConfigInput {
+  enabled: Boolean
+  config_path: String
+}
+
+input SensorConfigInput {
+  enabled: Boolean
+}
+
+input IpmiConfigInput {
+  enabled: Boolean
+  args: [String!]
+}
+
+input TemperatureThresholdsConfigInput {
+  cpu_warning: Int
+  cpu_critical: Int
+  disk_warning: Int
+  disk_critical: Int
+  warning: Int
+  critical: Int
+}
+
+input TemperatureHistoryConfigInput {
+  max_readings: Int
+  retention_ms: Int
+}
+
+input UpdateSystemTimeInput {
+  """New IANA timezone identifier to apply"""
+  timeZone: String
+
+  """Enable or disable NTP-based synchronization"""
+  useNtp: Boolean
+
+  """
+  Ordered list of up to four NTP servers. Supply empty strings to clear positions.
+  """
+  ntpServers: [String!]
+
+  """
+  Manual date/time to apply when disabling NTP, expected format YYYY-MM-DD HH:mm:ss
+  """
+  manualDateTime: String
 }
 
 input UPSConfigInput {
@@ -3298,84 +3699,49 @@ input AccessUrlInput {
 }
 
 type Subscription {
-  """
-  #### Required Permissions:
-  
-  - Action: **READ_ANY**
-  - Resource: **NOTIFICATIONS**
-  """
+  "\n#### Required Permissions:\n\n- Action: **READ_ANY**\n- Resource: **DISPLAY**"
+  displaySubscription: InfoDisplay!
+
+  "\n#### Required Permissions:\n\n- Action: **READ_ANY**\n- Resource: **NOTIFICATIONS**"
   notificationAdded: Notification!
 
-  """
-  #### Required Permissions:
-  
-  - Action: **READ_ANY**
-  - Resource: **NOTIFICATIONS**
-  """
+  "\n#### Required Permissions:\n\n- Action: **READ_ANY**\n- Resource: **NOTIFICATIONS**"
   notificationsOverview: NotificationOverview!
 
-  """
-  #### Required Permissions:
-  
-  - Action: **READ_ANY**
-  - Resource: **OWNER**
-  """
+  "\n#### Required Permissions:\n\n- Action: **READ_ANY**\n- Resource: **NOTIFICATIONS**"
+  notificationsWarningsAndAlerts: [Notification!]!
+
+  "\n#### Required Permissions:\n\n- Action: **READ_ANY**\n- Resource: **OWNER**"
   ownerSubscription: Owner!
 
-  """
-  #### Required Permissions:
-  
-  - Action: **READ_ANY**
-  - Resource: **SERVERS**
-  """
+  "\n#### Required Permissions:\n\n- Action: **READ_ANY**\n- Resource: **SERVERS**"
   serversSubscription: Server!
 
-  """
-  #### Required Permissions:
-  
-  - Action: **READ_ANY**
-  - Resource: **ARRAY**
-  """
+  "\n#### Required Permissions:\n\n- Action: **READ_ANY**\n- Resource: **ARRAY**"
   parityHistorySubscription: ParityCheck!
 
-  """
-  #### Required Permissions:
-  
-  - Action: **READ_ANY**
-  - Resource: **ARRAY**
-  """
+  "\n#### Required Permissions:\n\n- Action: **READ_ANY**\n- Resource: **ARRAY**"
   arraySubscription: UnraidArray!
 
-  """
-  #### Required Permissions:
-  
-  - Action: **READ_ANY**
-  - Resource: **LOGS**
-  """
+  "\n#### Required Permissions:\n\n- Action: **READ_ANY**\n- Resource: **DOCKER**"
+  dockerContainerStats: DockerContainerStats!
+
+  "\n#### Required Permissions:\n\n- Action: **READ_ANY**\n- Resource: **LOGS**"
   logFile(path: String!): LogFileContent!
 
-  """
-  #### Required Permissions:
-  
-  - Action: **READ_ANY**
-  - Resource: **INFO**
-  """
+  "\n#### Required Permissions:\n\n- Action: **READ_ANY**\n- Resource: **INFO**"
   systemMetricsCpu: CpuUtilization!
 
-  """
-  #### Required Permissions:
-  
-  - Action: **READ_ANY**
-  - Resource: **INFO**
-  """
+  "\n#### Required Permissions:\n\n- Action: **READ_ANY**\n- Resource: **INFO**"
   systemMetricsCpuTelemetry: CpuPackages!
 
-  """
-  #### Required Permissions:
-  
-  - Action: **READ_ANY**
-  - Resource: **INFO**
-  """
+  "\n#### Required Permissions:\n\n- Action: **READ_ANY**\n- Resource: **INFO**"
   systemMetricsMemory: MemoryUtilization!
+
+  "\n#### Required Permissions:\n\n- Action: **READ_ANY**\n- Resource: **INFO**"
+  systemMetricsTemperature: TemperatureMetrics
   upsUpdates: UPSDevice!
+
+  "\n#### Required Permissions:\n\n- Action: **READ_ANY**\n- Resource: **CONFIG**"
+  pluginInstallUpdates(operationId: ID!): PluginInstallEvent!
 }

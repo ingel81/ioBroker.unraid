@@ -45,6 +45,21 @@ export class DynamicResourceManager {
     private vmsDetected = false;
     private vmUuids: Set<string> = new Set();
 
+    // Dynamic temperature board sensor tracking
+    private temperatureBoardDetected = false;
+    private temperatureSensorIds: Set<string> = new Set();
+
+    // Docker updates summary tracking
+    private dockerUpdatesSummaryCreated = false;
+
+    // Docker isUpdateAvailable field creation tracking per container
+    private dockerIsUpdateAvailableCreated: Set<string> = new Set();
+
+    // Tracks the Docker container ID per container name so we can refresh
+    // control button metadata when the ID changes (e.g. after updateContainer
+    // recreates the container with a new hash).
+    private containerIdByName: Map<string, string> = new Map();
+
     private objectManager?: ObjectManager;
 
     /**
@@ -94,6 +109,7 @@ export class DynamicResourceManager {
         if (!selectedDomains.has('docker.containers')) {
             this.dockerContainersDetected = false;
             this.containerNames.clear();
+            this.containerIdByName.clear();
         }
 
         if (!selectedDomains.has('shares.list')) {
@@ -104,6 +120,19 @@ export class DynamicResourceManager {
         if (!selectedDomains.has('vms.list')) {
             this.vmsDetected = false;
             this.vmUuids.clear();
+        }
+
+        if (!selectedDomains.has('metrics.temperature.board')) {
+            this.temperatureBoardDetected = false;
+            this.temperatureSensorIds.clear();
+        }
+
+        if (!selectedDomains.has('docker.updates')) {
+            this.dockerUpdatesSummaryCreated = false;
+        }
+
+        if (!selectedDomains.has('docker.containers')) {
+            this.dockerIsUpdateAvailableCreated.clear();
         }
     }
 
@@ -395,17 +424,46 @@ export class DynamicResourceManager {
      * @param selectedDomains - Set of selected domain IDs
      */
     async handleDynamicDockerContainers(data: Record<string, unknown>, selectedDomains: Set<string>): Promise<void> {
-        if (!selectedDomains.has('docker.containers')) {
+        if (!selectedDomains.has('docker.containers') && !selectedDomains.has('docker.updates')) {
             return;
         }
 
-        const docker = data.docker as { containers?: unknown[] };
+        const docker = data.docker as {
+            containers?: unknown[];
+            containerUpdateStatuses?: unknown[];
+        };
         if (!docker?.containers) {
             return;
         }
 
         const containers = Array.isArray(docker.containers) ? docker.containers : [];
         const containerNames = new Set<string>();
+
+        // Build a lookup map from the authoritative per-container update status list.
+        // Unraid's DockerContainer.isUpdateAvailable is nullable and often null;
+        // Docker.containerUpdateStatuses is the source used by the Unraid UI.
+        const updateStatusByName = new Map<string, string>();
+        if (Array.isArray(docker.containerUpdateStatuses)) {
+            for (const entry of docker.containerUpdateStatuses) {
+                const item = entry as Record<string, unknown>;
+                const itemName = toStringOrNull(item.name);
+                const itemStatus = toStringOrNull(item.updateStatus);
+                if (itemName && itemStatus) {
+                    updateStatusByName.set(itemName.replace(/^\//, ''), itemStatus);
+                }
+            }
+        }
+
+        const resolveIsUpdateAvailable = (name: string, containerField: unknown): boolean | null => {
+            const status = updateStatusByName.get(name);
+            if (status) {
+                return status === 'UPDATE_AVAILABLE';
+            }
+            return toBooleanOrNull(containerField);
+        };
+
+        const wantsContainers = selectedDomains.has('docker.containers');
+        const wantsUpdates = selectedDomains.has('docker.updates');
 
         for (const container of containers) {
             const c = container as Record<string, unknown>;
@@ -421,7 +479,7 @@ export class DynamicResourceManager {
             containerNames.size !== this.containerNames.size ||
             ![...containerNames].every(name => this.containerNames.has(name));
 
-        if (needsUpdate) {
+        if (wantsContainers && needsUpdate) {
             this.containerNames = containerNames;
             this.dockerContainersDetected = true;
 
@@ -468,32 +526,133 @@ export class DynamicResourceManager {
             }
         }
 
-        // Update container values
-        for (const container of containers) {
-            const c = container as Record<string, unknown>;
-            const names = c.names as string[] | null;
-            if (!names || !Array.isArray(names) || names.length === 0) {
-                continue;
+        // Ensure isUpdateAvailable state exists per container when either the container
+        // field is present in the API response OR the update-status list covers the container.
+        if (wantsContainers) {
+            for (const container of containers) {
+                const c = container as Record<string, unknown>;
+                const names = c.names as string[] | null;
+                if (!names || !Array.isArray(names) || names.length === 0) {
+                    continue;
+                }
+                const name = names[0].replace(/^\//, '');
+                const hasDirectField = 'isUpdateAvailable' in c;
+                const hasStatusEntry = updateStatusByName.has(name);
+                if (!hasDirectField && !hasStatusEntry) {
+                    continue;
+                }
+                const sanitizedName = sanitizeResourceName(name);
+                const containerPrefix = `docker.containers.${sanitizedName}`;
+                if (!this.dockerIsUpdateAvailableCreated.has(containerPrefix)) {
+                    await this.stateManager.writeState(
+                        `${containerPrefix}.isUpdateAvailable`,
+                        { type: 'boolean', role: 'indicator' },
+                        null,
+                    );
+                    this.dockerIsUpdateAvailableCreated.add(containerPrefix);
+                }
             }
-
-            const name = names[0].replace(/^\//, '');
-            if (!this.containerNames.has(name)) {
-                continue;
-            }
-
-            const sanitizedName = sanitizeResourceName(name);
-            const containerPrefix = `docker.containers.${sanitizedName}`;
-
-            await this.stateManager.updateState(`${containerPrefix}.name`, name);
-            await this.stateManager.updateState(`${containerPrefix}.image`, toStringOrNull(c.image));
-            await this.stateManager.updateState(`${containerPrefix}.state`, toStringOrNull(c.state));
-            await this.stateManager.updateState(`${containerPrefix}.status`, toStringOrNull(c.status));
-            await this.stateManager.updateState(`${containerPrefix}.autoStart`, toBooleanOrNull(c.autoStart));
-            await this.stateManager.updateState(`${containerPrefix}.sizeGb`, bytesToGigabytes(c.sizeRootFs));
         }
 
-        // Sync with ObjectManager
-        if (this.objectManager) {
+        // Update container values (only when docker.containers is selected)
+        if (wantsContainers) {
+            for (const container of containers) {
+                const c = container as Record<string, unknown>;
+                const names = c.names as string[] | null;
+                if (!names || !Array.isArray(names) || names.length === 0) {
+                    continue;
+                }
+
+                const name = names[0].replace(/^\//, '');
+                if (!this.containerNames.has(name)) {
+                    continue;
+                }
+
+                const sanitizedName = sanitizeResourceName(name);
+                const containerPrefix = `docker.containers.${sanitizedName}`;
+
+                await this.stateManager.updateState(`${containerPrefix}.name`, name);
+                await this.stateManager.updateState(`${containerPrefix}.image`, toStringOrNull(c.image));
+                await this.stateManager.updateState(`${containerPrefix}.state`, toStringOrNull(c.state));
+                await this.stateManager.updateState(`${containerPrefix}.status`, toStringOrNull(c.status));
+                await this.stateManager.updateState(`${containerPrefix}.autoStart`, toBooleanOrNull(c.autoStart));
+                await this.stateManager.updateState(`${containerPrefix}.sizeGb`, bytesToGigabytes(c.sizeRootFs));
+                if (this.dockerIsUpdateAvailableCreated.has(containerPrefix)) {
+                    await this.stateManager.updateState(
+                        `${containerPrefix}.isUpdateAvailable`,
+                        resolveIsUpdateAvailable(name, c.isUpdateAvailable),
+                    );
+                }
+
+                // Refresh control-button metadata if the container ID changed.
+                // This covers the case where `updateContainer` recreates the container
+                // under the same name but assigns a fresh Docker hash; without the refresh
+                // subsequent pause/stop/update calls would fail with "No such container".
+                const currentId = toStringOrNull(c.id);
+                if (currentId) {
+                    const previousId = this.containerIdByName.get(name);
+                    if (previousId !== currentId) {
+                        if (previousId !== undefined) {
+                            this.adapter.log.info(`Container "${name}" id changed; refreshing control button metadata`);
+                            await this.refreshDockerControlMetadata(containerPrefix, currentId);
+                        }
+                        this.containerIdByName.set(name, currentId);
+                    }
+                }
+            }
+        }
+
+        // Aggregate docker.updates summary (only when the summary domain is selected)
+        if (wantsUpdates) {
+            let availableCount = 0;
+            let seenAny = false;
+            for (const container of containers) {
+                const c = container as Record<string, unknown>;
+                const names = c.names as string[] | null;
+                if (!names || !Array.isArray(names) || names.length === 0) {
+                    continue;
+                }
+                const name = names[0].replace(/^\//, '');
+                const hasDirect = 'isUpdateAvailable' in c;
+                const hasStatus = updateStatusByName.has(name);
+                if (!hasDirect && !hasStatus) {
+                    continue;
+                }
+                seenAny = true;
+                if (resolveIsUpdateAvailable(name, c.isUpdateAvailable) === true) {
+                    availableCount += 1;
+                }
+            }
+
+            if (!this.dockerUpdatesSummaryCreated) {
+                await this.stateManager.writeState(
+                    'docker.updates.availableCount',
+                    { type: 'number', role: 'value', unit: '' },
+                    null,
+                );
+                await this.stateManager.writeState(
+                    'docker.updates.hasUpdates',
+                    { type: 'boolean', role: 'indicator' },
+                    null,
+                );
+                this.dockerUpdatesSummaryCreated = true;
+            }
+
+            if (seenAny) {
+                await this.stateManager.updateState('docker.updates.availableCount', availableCount);
+                await this.stateManager.updateState('docker.updates.hasUpdates', availableCount > 0);
+            } else {
+                // Field not delivered by this Unraid version; keep previous values untouched to
+                // avoid falsely reporting "no updates" when the capability is simply missing.
+                this.adapter.log.debug(
+                    'docker.updates selected, but isUpdateAvailable not present in response. Summary values left unchanged.',
+                );
+            }
+        }
+
+        // Sync with ObjectManager — only when docker.containers is selected so we do not
+        // orphan-clean container objects when only the docker.updates summary is active.
+        if (wantsContainers && this.objectManager) {
             const resourceMap = new Map<string, any>();
             for (const name of containerNames) {
                 const sanitizedName = name.replace(/[^a-zA-Z0-9_-]/g, '_');
@@ -723,6 +882,138 @@ export class DynamicResourceManager {
         }
     }
 
+    /**
+     * Handle dynamic mainboard temperature sensors.
+     * Filters sensors to CHIPSET/AMBIENT/VRM/GPU/MOTHERBOARD/CUSTOM types
+     * (CPU package, CPU cores, and disk sensors are covered by other domains).
+     *
+     * @param data - Unraid polling response
+     * @param selectedDomains - Currently selected domain IDs
+     */
+    async handleDynamicTemperatureBoardSensors(
+        data: Record<string, unknown>,
+        selectedDomains: Set<string>,
+    ): Promise<void> {
+        if (!selectedDomains.has('metrics.temperature.board')) {
+            return;
+        }
+
+        const metrics = data.metrics as { temperature?: { sensors?: unknown[] } | null } | undefined;
+        const sensors = metrics?.temperature?.sensors;
+        if (!Array.isArray(sensors)) {
+            // API response missing the temperature field (capability not available or
+            // introspection flagged it off). Do NOT run the orphan cleanup so existing
+            // channels are preserved until the next successful poll.
+            this.adapter.log.debug(
+                'metrics.temperature.board selected but no temperature.sensors in response. Skipping update.',
+            );
+            return;
+        }
+
+        const BOARD_TYPES = new Set(['CHIPSET', 'AMBIENT', 'VRM', 'GPU', 'MOTHERBOARD', 'CUSTOM']);
+        const usedIds = new Set<string>();
+        type BoardSensor = {
+            resourceId: string;
+            name: string;
+            temp: number | null;
+            tempStatus: string | null;
+        };
+
+        const boardSensors: BoardSensor[] = [];
+        for (const raw of sensors) {
+            const sensor = raw as Record<string, unknown>;
+            const typeValue = toStringOrNull(sensor.type);
+            if (!typeValue || !BOARD_TYPES.has(typeValue.toUpperCase())) {
+                continue;
+            }
+            const idValue = toStringOrNull(sensor.id) ?? toStringOrNull(sensor.name);
+            if (!idValue) {
+                continue;
+            }
+            let resourceId = sanitizeResourceName(idValue);
+            if (!resourceId) {
+                resourceId = 'sensor';
+            }
+            // Collision handling: append numeric suffix if sanitized id already used
+            if (usedIds.has(resourceId)) {
+                let counter = 2;
+                while (usedIds.has(`${resourceId}_${counter}`)) {
+                    counter += 1;
+                }
+                this.adapter.log.warn(
+                    `Board sensor id collision after sanitization: "${idValue}" -> using suffix _${counter}`,
+                );
+                resourceId = `${resourceId}_${counter}`;
+            }
+            usedIds.add(resourceId);
+
+            const current = sensor.current as Record<string, unknown> | null | undefined;
+            boardSensors.push({
+                resourceId,
+                name: toStringOrNull(sensor.name) ?? idValue,
+                temp: toNumberOrNull(current?.value),
+                tempStatus: toStringOrNull(current?.status),
+            });
+        }
+
+        const currentIds = new Set(boardSensors.map(s => s.resourceId));
+        const idsChanged =
+            !this.temperatureBoardDetected ||
+            currentIds.size !== this.temperatureSensorIds.size ||
+            [...currentIds].some(id => !this.temperatureSensorIds.has(id));
+
+        if (idsChanged) {
+            this.temperatureSensorIds = currentIds;
+            this.temperatureBoardDetected = true;
+
+            this.adapter.log.info(`Detected ${boardSensors.length} mainboard temperature sensors`);
+
+            await this.stateManager.writeState(
+                'metrics.temperature.board.count',
+                { type: 'number', role: 'value', unit: '' },
+                boardSensors.length,
+            );
+
+            for (const sensor of boardSensors) {
+                const prefix = `metrics.temperature.board.${sensor.resourceId}`;
+                await this.stateManager.writeState(`${prefix}.name`, { type: 'string', role: 'text' }, null);
+                await this.stateManager.writeState(
+                    `${prefix}.temp`,
+                    { type: 'number', role: 'value.temperature', unit: '°C' },
+                    null,
+                );
+                await this.stateManager.writeState(`${prefix}.tempStatus`, { type: 'string', role: 'text' }, null);
+                // Remove sub-states from earlier pre-release iterations (type/tempWarning/tempCritical).
+                // Idempotent: delObjectAsync on a non-existing id just resolves without error.
+                for (const obsolete of ['type', 'tempWarning', 'tempCritical']) {
+                    try {
+                        await this.adapter.delObjectAsync(`${prefix}.${obsolete}`);
+                    } catch {
+                        // State did not exist — no cleanup needed.
+                    }
+                }
+            }
+        } else {
+            // Count might stay stable but we still want it fresh
+            await this.stateManager.updateState('metrics.temperature.board.count', boardSensors.length);
+        }
+
+        for (const sensor of boardSensors) {
+            const prefix = `metrics.temperature.board.${sensor.resourceId}`;
+            await this.stateManager.updateState(`${prefix}.name`, sensor.name);
+            await this.stateManager.updateState(`${prefix}.temp`, sensor.temp);
+            await this.stateManager.updateState(`${prefix}.tempStatus`, sensor.tempStatus);
+        }
+
+        if (this.objectManager) {
+            const resourceMap = new Map<string, any>();
+            for (const sensor of boardSensors) {
+                resourceMap.set(sensor.resourceId, { id: sensor.resourceId });
+            }
+            await this.objectManager.handleDynamicResources('temperature', resourceMap);
+        }
+    }
+
     private async createDiskStates(prefix: string, disks: unknown[]): Promise<void> {
         for (let i = 0; i < disks.length; i++) {
             const disk = disks[i] as Record<string, unknown>;
@@ -844,6 +1135,41 @@ export class DynamicResourceManager {
 
             await this.stateManager.updateState(`${diskPrefix}.rotational`, toBooleanOrNull(d.rotational));
             await this.stateManager.updateState(`${diskPrefix}.transport`, toStringOrNull(d.transport));
+        }
+    }
+
+    /**
+     * Refresh the `native` metadata of existing Docker control buttons without
+     * touching the current state value. Used when a container's Docker ID changes
+     * after `updateContainer` recreates the container under the same name.
+     *
+     * @param containerPrefix - The state prefix for the container
+     * @param containerId - The updated container ID for mutations
+     */
+    private async refreshDockerControlMetadata(containerPrefix: string, containerId: string): Promise<void> {
+        for (const control of DOCKER_CONTROL_STATES) {
+            const stateId = `${containerPrefix}.${control.id}`;
+            const translations = (stateTranslations as Record<string, any>)[control.id];
+            const name: ioBroker.StringOrTranslated = translations || control.common.name;
+
+            await this.adapter.setObjectAsync(stateId, {
+                type: 'state',
+                common: {
+                    type: control.common.type,
+                    role: control.common.role,
+                    read: control.common.read ?? true,
+                    write: control.common.write ?? true,
+                    def: control.common.def ?? false,
+                    name,
+                    desc: control.common.desc,
+                    custom: {},
+                } as ioBroker.StateCommon,
+                native: {
+                    resourceType: 'docker',
+                    resourceId: containerId,
+                    action: control.id.split('.').pop(),
+                },
+            });
         }
     }
 

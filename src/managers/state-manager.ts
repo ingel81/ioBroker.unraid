@@ -18,6 +18,28 @@ export class StateManager {
     constructor(private readonly adapter: AdapterInterface) {}
 
     /**
+     * Populate the in-memory existing-state index from the ioBroker objects DB.
+     * Called once at adapter start so that `writeState` does not wipe valid
+     * values with `null` when re-registering previously known states.
+     */
+    async hydrateFromExistingObjects(): Promise<void> {
+        const objects = await this.adapter.getAdapterObjectsAsync();
+        const prefix = `${this.adapter.namespace}.`;
+        for (const fullId of Object.keys(objects)) {
+            const obj = objects[fullId];
+            const relativeId = fullId.startsWith(prefix) ? fullId.slice(prefix.length) : fullId;
+            if (!relativeId) {
+                continue;
+            }
+            if (obj.type === 'state') {
+                this.createdStates.add(relativeId);
+            } else if (obj.type === 'channel') {
+                this.createdChannels.add(relativeId);
+            }
+        }
+    }
+
+    /**
      * Initialize static states from domain definitions
      *
      * @param definitions - Array of domain definitions to initialize states from
@@ -75,7 +97,8 @@ export class StateManager {
                 id.startsWith('array.disks.') ||
                 id.startsWith('array.parities.') ||
                 id.startsWith('array.caches.') ||
-                id.startsWith('metrics.cpu.cores.');
+                id.startsWith('metrics.cpu.cores.') ||
+                id.startsWith('metrics.temperature.board.');
 
             if (isDynamicResource && parts.length > 0) {
                 fieldName = parts[parts.length - 1];
@@ -85,6 +108,8 @@ export class StateManager {
 
         // If no translation found, use fieldName or id as fallback
         const name: ioBroker.StringOrTranslated = translations || fieldName || id;
+
+        const stateAlreadyExisted = this.createdStates.has(id);
 
         // Always update or create the state object to ensure translations are applied
         await this.adapter.setObjectAsync(id, {
@@ -101,8 +126,15 @@ export class StateManager {
         });
         this.createdStates.add(id);
 
-        const normalizedValue = value === undefined ? null : (value as ioBroker.StateValue);
-        await this.adapter.setStateAsync(id, normalizedValue, true);
+        // Only write state value if:
+        //   - the state is brand new (needs an initial value so ioBroker shows it), or
+        //   - the caller provided an explicit non-null value.
+        // This prevents valid values from being wiped to null when re-registering
+        // existing states (e.g. when new fields are added to a dynamic resource).
+        if (!stateAlreadyExisted || value !== null) {
+            const normalizedValue = value === undefined ? null : (value as ioBroker.StateValue);
+            await this.adapter.setStateAsync(id, normalizedValue, true);
+        }
     }
 
     /**

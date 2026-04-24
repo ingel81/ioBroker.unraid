@@ -8,20 +8,24 @@ const selection_builder_1 = require("../graphql/selection-builder");
 class PollingManager {
     adapter;
     apolloClient;
+    capabilities;
     onDataReceived;
     pollTimer;
     stopRequested = false;
     currentDefinitions = [];
+    reportedMissingFields = new Set();
     /**
      * Create a new polling manager
      *
      * @param adapter - Adapter interface for logging and timers
      * @param apolloClient - Apollo client for GraphQL queries
+     * @param capabilities - Mutable capability flags; updated on runtime fallback
      * @param onDataReceived - Callback function when data is received
      */
-    constructor(adapter, apolloClient, onDataReceived) {
+    constructor(adapter, apolloClient, capabilities, onDataReceived) {
         this.adapter = adapter;
         this.apolloClient = apolloClient;
+        this.capabilities = capabilities;
         this.onDataReceived = onDataReceived;
     }
     /**
@@ -87,11 +91,51 @@ class PollingManager {
             await this.onDataReceived(data);
         }
         catch (error) {
+            const message = error instanceof Error ? error.message : String(error);
+            // Handle "Cannot query field X on type Y" by disabling the related capability
+            // and deferring a rebuilt query to the next poll cycle. Existing states are
+            // preserved — no cleanup is triggered because no data was delivered.
+            if (message.includes('Cannot query field')) {
+                const disabled = this.degradeCapabilitiesFromError(message);
+                if (disabled.length > 0) {
+                    this.adapter.log.warn(`GraphQL schema rejected a field; disabled capabilities ${disabled.join(', ')}. Next poll will rebuild the query.`);
+                    return;
+                }
+            }
             if (error instanceof Error) {
                 throw new Error(`GraphQL error: ${error.message}`);
             }
             throw error;
         }
+    }
+    /**
+     * Parse a "Cannot query field" error and turn off the matching capability flag.
+     * Mutates the shared capabilities object so the next poll rebuilds the query.
+     *
+     * @param message - Full error message from Apollo/GraphQL
+     * @returns Names of capabilities that were disabled
+     */
+    degradeCapabilitiesFromError(message) {
+        const disabled = [];
+        const fieldToCapability = {
+            temperature: 'temperatureMetrics',
+            isUpdateAvailable: 'dockerUpdateFlag',
+            containerUpdateStatuses: 'dockerContainerUpdateStatuses',
+            pause: 'dockerPause',
+            unpause: 'dockerUnpause',
+            updateContainer: 'dockerUpdate',
+        };
+        for (const [field, capability] of Object.entries(fieldToCapability)) {
+            const regex = new RegExp(`Cannot query field "${field}"`);
+            if (regex.test(message) && this.capabilities[capability]) {
+                this.capabilities[capability] = false;
+                disabled.push(capability);
+                if (!this.reportedMissingFields.has(field)) {
+                    this.reportedMissingFields.add(field);
+                }
+            }
+        }
+        return disabled;
     }
     /**
      * Schedule the next polling cycle
@@ -119,7 +163,7 @@ class PollingManager {
      * @param definitions - Array of domain definitions to build query from
      */
     buildQuery(definitions) {
-        const builder = new selection_builder_1.GraphQLSelectionBuilder();
+        const builder = new selection_builder_1.GraphQLSelectionBuilder(this.capabilities);
         for (const definition of definitions) {
             builder.addSelections(definition.selection);
         }

@@ -46,6 +46,17 @@ const domainTreeDefinition = [
                 label: 'domains.metrics.memory',
                 defaultSelected: true,
             },
+            {
+                id: 'metrics.temperature',
+                label: 'domains.metrics.temperature',
+                children: [
+                    {
+                        id: 'metrics.temperature.board',
+                        label: 'domains.metrics.temperature.board',
+                        defaultSelected: false,
+                    },
+                ],
+            },
         ],
     },
     {
@@ -82,6 +93,11 @@ const domainTreeDefinition = [
                 id: 'docker.containers',
                 label: 'domains.docker.containers',
                 defaultSelected: false,
+            },
+            {
+                id: 'docker.updates',
+                label: 'domains.docker.updates',
+                defaultSelected: true,
             },
         ],
     },
@@ -631,13 +647,73 @@ const domainDefinitionsList = [
                             { name: 'status' },
                             { name: 'autoStart' },
                             { name: 'sizeRootFs' },
+                            { name: 'isUpdateAvailable', requiresCapability: 'dockerUpdateFlag' },
                         ],
+                    },
+                    {
+                        name: 'containerUpdateStatuses',
+                        requiresCapability: 'dockerContainerUpdateStatuses',
+                        selection: [{ name: 'name' }, { name: 'updateStatus' }],
                     },
                 ],
             },
         ],
         states: [
         // Note: Container states are created dynamically in main.ts
+        ],
+    },
+    {
+        id: 'docker.updates',
+        selection: [
+            {
+                root: 'docker',
+                fields: [
+                    {
+                        name: 'containers',
+                        requiresCapability: 'dockerUpdateFlag',
+                        selection: [{ name: 'id' }, { name: 'isUpdateAvailable' }],
+                    },
+                    {
+                        name: 'containerUpdateStatuses',
+                        requiresCapability: 'dockerContainerUpdateStatuses',
+                        selection: [{ name: 'name' }, { name: 'updateStatus' }],
+                    },
+                ],
+            },
+        ],
+        states: [
+        // Note: Aggregated states are created dynamically in main.ts
+        ],
+    },
+    {
+        id: 'metrics.temperature.board',
+        selection: [
+            {
+                root: 'metrics',
+                requiresCapability: 'temperatureMetrics',
+                fields: [
+                    {
+                        name: 'temperature',
+                        selection: [
+                            {
+                                name: 'sensors',
+                                selection: [
+                                    { name: 'id' },
+                                    { name: 'name' },
+                                    { name: 'type' },
+                                    {
+                                        name: 'current',
+                                        selection: [{ name: 'value' }, { name: 'status' }],
+                                    },
+                                ],
+                            },
+                        ],
+                    },
+                ],
+            },
+        ],
+        states: [
+        // Note: Sensor states are created dynamically in main.ts
         ],
     },
     {
@@ -751,36 +827,31 @@ const collectNodeIds = (node) => {
 };
 exports.collectNodeIds = collectNodeIds;
 /**
- * Collect all selectable (leaf) domain IDs from a node tree.
+ * Filter a raw domain selection to the set of leaves that have a
+ * `DomainDefinition` (i.e. can actually be polled / written to the tree).
  *
- * @param node - Root node to traverse
- * @param acc - Accumulator set for IDs
- */
-const collectSelectable = (node, acc) => {
-    if (exports.domainDefinitionById.has(node.id)) {
-        acc.add(node.id);
-    }
-    if (node.children?.length) {
-        for (const child of node.children) {
-            collectSelectable(child, acc);
-        }
-    }
-};
-/**
- * Expand a domain selection to include all ancestors.
- * Ensures parent domains are included when child domains are selected.
+ * Historically this function recursively descended into the children of
+ * parent nodes. That turned out to be an opt-out trap: when a newer adapter
+ * version added a fresh child domain (e.g. `docker.updates` or
+ * `metrics.temperature.board`), any existing user whose saved config still
+ * contained the parent id (`docker`, `metrics`) silently got the new child
+ * enabled without ever clicking it. That contradicts the opt-in expectation
+ * for new features.
  *
- * @param selection - Initial domain selection
- * @returns Expanded selection including all necessary ancestors
+ * The new contract: pass through exactly what the admin UI persisted; drop
+ * parent ids that have no definition; do NOT auto-expand into children. The
+ * admin UI still writes all affected leaves on parent toggles, so existing
+ * leaf-based selections continue to work unchanged.
+ *
+ * @param selection - Raw domain ids from the configuration
+ * @returns Set of selectable domain ids (those with a DomainDefinition)
  */
 const expandSelection = (selection) => {
     const result = new Set();
     for (const id of selection) {
-        const node = exports.domainNodeById.get(id);
-        if (!node) {
-            continue;
+        if (exports.domainDefinitionById.has(id)) {
+            result.add(id);
         }
-        collectSelectable(node, result);
     }
     return result;
 };
@@ -811,6 +882,42 @@ exports.DOCKER_CONTROL_STATES = [
             write: true,
             def: false,
             name: 'Stop Container',
+        },
+    },
+    {
+        id: 'commands.pause',
+        path: [],
+        common: {
+            type: 'boolean',
+            role: 'button.pause',
+            read: true,
+            write: true,
+            def: false,
+            name: 'Pause Container',
+        },
+    },
+    {
+        id: 'commands.resume',
+        path: [],
+        common: {
+            type: 'boolean',
+            role: 'button.resume',
+            read: true,
+            write: true,
+            def: false,
+            name: 'Resume Container',
+        },
+    },
+    {
+        id: 'commands.update',
+        path: [],
+        common: {
+            type: 'boolean',
+            role: 'button',
+            read: true,
+            write: true,
+            def: false,
+            name: 'Update Container',
         },
     },
 ];

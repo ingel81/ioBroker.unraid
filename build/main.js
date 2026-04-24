@@ -9,6 +9,7 @@ const object_manager_1 = require("./managers/object-manager");
 const control_manager_1 = require("./managers/control-manager");
 const adapter_config_1 = require("./config/adapter-config");
 const unraid_domains_1 = require("./shared/unraid-domains");
+const capabilities_1 = require("./shared/capabilities");
 /**
  * Main adapter class for connecting ioBroker to Unraid servers.
  * Manages GraphQL polling, WebSocket subscriptions, and state updates.
@@ -23,6 +24,7 @@ class UnraidAdapter extends adapter_core_1.Adapter {
     effectiveSelection = new Set();
     selectedDefinitions = [];
     staticObjectIds = new Set();
+    capabilities = (0, capabilities_1.allCapabilitiesEnabled)();
     /**
      * Creates a new Unraid adapter instance
      *
@@ -67,13 +69,25 @@ class UnraidAdapter extends adapter_core_1.Adapter {
                 allowSelfSigned: config.allowSelfSigned,
                 logger: this.log,
             });
-            // Initialize polling manager
-            this.pollingManager = new polling_manager_1.PollingManager(this, this.apolloClient, this.handlePolledData.bind(this));
-            // Initialize control manager
-            this.controlManager = new control_manager_1.ControlManager(this, this.apolloClient);
+            // Probe optional API features to stay compatible with older Unraid versions.
+            // Mutating this.capabilities in place means PollingManager and ControlManager
+            // see runtime updates (e.g. if we later disable a flag via the error-path).
+            const probed = await this.apolloClient.introspectCapabilities();
+            Object.assign(this.capabilities, probed);
+            // Initialize polling manager (shares the capabilities reference)
+            this.pollingManager = new polling_manager_1.PollingManager(this, this.apolloClient, this.capabilities, this.handlePolledData.bind(this));
+            // Initialize control manager (shares the same capabilities reference and
+            // gets a callback to request an immediate re-poll after a successful mutation).
+            this.controlManager = new control_manager_1.ControlManager(this, this.apolloClient, this.capabilities, () => {
+                this.pollingManager?.poll();
+            });
             // Initialize object manager and clean up unselected domains
             await this.objectManager.initialize(this.selectedDefinitions);
             await this.objectManager.cleanupUnselectedDomains(this.effectiveSelection);
+            // Load existing state/channel ids from DB so that re-registering known states
+            // does not overwrite their current values with null (prevents a visible flicker
+            // in the object tree when new fields/domains are added).
+            await this.stateManager.hydrateFromExistingObjects();
             // Initialize static states
             await this.stateManager.initializeStaticStates(this.selectedDefinitions);
             // Subscription support disabled for now (API issues)
@@ -152,6 +166,7 @@ class UnraidAdapter extends adapter_core_1.Adapter {
         // Handle dynamic resources
         await this.dynamicResourceManager.handleDynamicCpuCores(data, this.effectiveSelection);
         await this.dynamicResourceManager.handleDynamicCpuPackages(data, this.effectiveSelection);
+        await this.dynamicResourceManager.handleDynamicTemperatureBoardSensors(data, this.effectiveSelection);
         await this.dynamicResourceManager.handleDynamicArrayDisks(data, this.effectiveSelection);
         await this.dynamicResourceManager.handleDynamicDockerContainers(data, this.effectiveSelection);
         await this.dynamicResourceManager.handleDynamicShares(data, this.effectiveSelection);

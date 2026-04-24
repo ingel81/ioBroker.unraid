@@ -1,6 +1,7 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.ObjectManager = void 0;
+const unraid_domains_1 = require("../shared/unraid-domains");
 /**
  * Manages ioBroker object lifecycle - creation, tracking, and cleanup.
  * Ensures the object structure stays in sync with the Unraid server state.
@@ -108,37 +109,111 @@ class ObjectManager {
         }
     }
     /**
-     * Clean up all objects not in the selected domains
+     * Map selected domain ids to the state-path prefixes under which the
+     * corresponding dynamic handlers place their states. A single domain can
+     * cover multiple prefixes (e.g. `metrics.cpu` drives both
+     * `metrics.cpu.cores.*` and `metrics.cpu.packages.*`). For domains that
+     * only produce static states, no entry is needed — those are covered by
+     * the explicit `states[].id` list in the DomainDefinition.
+     */
+    static DOMAIN_DYNAMIC_PREFIXES = {
+        'metrics.cpu': ['metrics.cpu.cores', 'metrics.cpu.packages'],
+        'array.disks': ['array.disks'],
+        'array.parities': ['array.parities'],
+        'array.caches': ['array.caches'],
+        'docker.containers': ['docker.containers'],
+        'docker.updates': ['docker.updates'],
+        'shares.list': ['shares'],
+        'vms.list': ['vms'],
+        'metrics.temperature.board': ['metrics.temperature.board'],
+    };
+    /**
+     * Clean up all objects not in the selected domains.
+     *
+     * Builds the allowed keep-list from two sources:
+     *   1. `DomainDefinition.states[].id` — explicit static state ids for the
+     *      selected domains (e.g. `server.name`, `array.state`,
+     *      `array.capacity.totalGb`). Parent channels of those ids are kept too.
+     *   2. `DOMAIN_DYNAMIC_PREFIXES` — state-path prefixes under which dynamic
+     *      handlers create states (e.g. `metrics.cpu.cores` for any
+     *      `metrics.cpu.cores.<n>.*` descendant).
+     *
+     * Anything not matching either source is removed.
      *
      * @param selectedDomains - Set of selected domain IDs to keep
      */
     async cleanupUnselectedDomains(selectedDomains) {
         const objects = await this.adapter.getAdapterObjectsAsync();
-        const allowedPrefixes = this.getAllowedPrefixes(selectedDomains);
+        this.adapter.log.debug(`Cleanup: selected domains = [${[...selectedDomains].sort().join(', ')}], scanning ${Object.keys(objects).length} objects`);
+        const allowedExactIds = new Set();
+        const allowedDynamicPrefixes = new Set();
+        const addWithAncestors = (id) => {
+            const parts = id.split('.');
+            for (let i = 1; i <= parts.length; i++) {
+                allowedExactIds.add(parts.slice(0, i).join('.'));
+            }
+        };
+        for (const id of selectedDomains) {
+            const definition = unraid_domains_1.domainDefinitionById.get(id);
+            if (definition) {
+                addWithAncestors(definition.id);
+                for (const state of definition.states) {
+                    addWithAncestors(state.id);
+                }
+            }
+            const dynamicPrefixes = ObjectManager.DOMAIN_DYNAMIC_PREFIXES[id];
+            if (dynamicPrefixes) {
+                for (const prefix of dynamicPrefixes) {
+                    allowedDynamicPrefixes.add(prefix);
+                    // Ensure the prefix itself and its ancestor channels are kept
+                    addWithAncestors(prefix);
+                }
+            }
+        }
+        let removed = 0;
+        let kept = 0;
         for (const fullId of Object.keys(objects)) {
             const relativeId = this.getRelativeId(fullId);
             if (!relativeId) {
                 continue;
             }
-            // Check if this object belongs to a selected domain
-            let shouldKeep = false;
-            for (const prefix of allowedPrefixes) {
-                if (relativeId.startsWith(prefix)) {
-                    shouldKeep = true;
-                    break;
-                }
+            if (this.isAllowed(relativeId, allowedExactIds, allowedDynamicPrefixes)) {
+                kept += 1;
+                continue;
             }
-            if (!shouldKeep) {
-                try {
-                    await this.adapter.delObjectAsync(relativeId, { recursive: true });
-                    this.trackedObjects.delete(relativeId);
-                    this.adapter.log.debug(`Removed object from unselected domain: ${relativeId}`);
-                }
-                catch (error) {
-                    this.adapter.log.warn(`Failed to remove object ${relativeId}: ${this.describeError(error)}`);
-                }
+            try {
+                await this.adapter.delObjectAsync(relativeId, { recursive: true });
+                this.trackedObjects.delete(relativeId);
+                this.adapter.log.debug(`Cleanup: removed ${relativeId}`);
+                removed += 1;
+            }
+            catch (error) {
+                this.adapter.log.warn(`Failed to remove object ${relativeId}: ${this.describeError(error)}`);
             }
         }
+        if (removed > 0) {
+            this.adapter.log.info(`Cleanup done: removed ${removed} unselected object(s), kept ${kept}`);
+        }
+        else {
+            this.adapter.log.debug(`Cleanup done: kept ${kept} object(s), nothing to remove`);
+        }
+    }
+    /**
+     * @param relativeId - Relative object id (without namespace prefix)
+     * @param allowedExactIds - Set of ids (and their parent channels) that must stay
+     * @param allowedDynamicPrefixes - Prefixes under which dynamic descendants are allowed
+     * @returns True if the object must be kept
+     */
+    isAllowed(relativeId, allowedExactIds, allowedDynamicPrefixes) {
+        if (allowedExactIds.has(relativeId)) {
+            return true;
+        }
+        for (const prefix of allowedDynamicPrefixes) {
+            if (relativeId.startsWith(`${prefix}.`)) {
+                return true;
+            }
+        }
+        return false;
     }
     /**
      * Get tracking statistics
@@ -276,21 +351,9 @@ class ObjectManager {
                 return 'shares';
             case 'vm':
                 return 'vms';
+            case 'temperature':
+                return 'metrics.temperature.board';
         }
-    }
-    getAllowedPrefixes(selectedDomains) {
-        const prefixes = [];
-        for (const domain of selectedDomains) {
-            // Add the domain itself and common parent paths
-            const parts = domain.split('.');
-            for (let i = 1; i <= parts.length; i++) {
-                const prefix = parts.slice(0, i).join('.');
-                if (!prefixes.includes(prefix)) {
-                    prefixes.push(prefix);
-                }
-            }
-        }
-        return prefixes;
     }
     collectStaticObjectIds(definitions) {
         const ids = new Set();

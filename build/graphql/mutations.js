@@ -4,7 +4,7 @@
  * Based on Unraid API schema from docs/schema.graphql
  */
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.VM_RESET_MUTATION = exports.VM_REBOOT_MUTATION = exports.VM_FORCE_STOP_MUTATION = exports.VM_RESUME_MUTATION = exports.VM_PAUSE_MUTATION = exports.VM_STOP_MUTATION = exports.VM_START_MUTATION = exports.DOCKER_STOP_MUTATION = exports.DOCKER_START_MUTATION = void 0;
+exports.VM_RESET_MUTATION = exports.VM_REBOOT_MUTATION = exports.VM_FORCE_STOP_MUTATION = exports.VM_RESUME_MUTATION = exports.VM_PAUSE_MUTATION = exports.VM_STOP_MUTATION = exports.VM_START_MUTATION = exports.DOCKER_UPDATE_MUTATION = exports.DOCKER_UNPAUSE_MUTATION = exports.DOCKER_PAUSE_MUTATION = exports.DOCKER_STOP_MUTATION = exports.DOCKER_START_MUTATION = void 0;
 // Docker mutations - return DockerContainer object
 exports.DOCKER_START_MUTATION = `
     mutation StartDockerContainer($id: PrefixedID!) {
@@ -21,6 +21,39 @@ exports.DOCKER_STOP_MUTATION = `
     mutation StopDockerContainer($id: PrefixedID!) {
         docker {
             stop(id: $id) {
+                id
+                state
+                status
+            }
+        }
+    }
+`;
+exports.DOCKER_PAUSE_MUTATION = `
+    mutation PauseDockerContainer($id: PrefixedID!) {
+        docker {
+            pause(id: $id) {
+                id
+                state
+                status
+            }
+        }
+    }
+`;
+exports.DOCKER_UNPAUSE_MUTATION = `
+    mutation UnpauseDockerContainer($id: PrefixedID!) {
+        docker {
+            unpause(id: $id) {
+                id
+                state
+                status
+            }
+        }
+    }
+`;
+exports.DOCKER_UPDATE_MUTATION = `
+    mutation UpdateDockerContainer($id: PrefixedID!) {
+        docker {
+            updateContainer(id: $id) {
                 id
                 state
                 status

@@ -1,6 +1,7 @@
 import type { AdapterInterface } from '../types/adapter-types';
 import type { UnraidApolloClient } from '../apollo-client';
 import type { DomainDefinition } from '../shared/unraid-domains';
+import type { Capabilities, CapabilityKey } from '../shared/capabilities';
 import { GraphQLSelectionBuilder } from '../graphql/selection-builder';
 
 /**
@@ -10,17 +11,20 @@ export class PollingManager {
     private pollTimer?: ioBroker.Timeout;
     private stopRequested = false;
     private currentDefinitions: readonly DomainDefinition[] = [];
+    private reportedMissingFields = new Set<string>();
 
     /**
      * Create a new polling manager
      *
      * @param adapter - Adapter interface for logging and timers
      * @param apolloClient - Apollo client for GraphQL queries
+     * @param capabilities - Mutable capability flags; updated on runtime fallback
      * @param onDataReceived - Callback function when data is received
      */
     constructor(
         private readonly adapter: AdapterInterface,
         private readonly apolloClient: UnraidApolloClient,
+        private readonly capabilities: Capabilities,
         private readonly onDataReceived: (data: Record<string, unknown>) => Promise<void>,
     ) {}
 
@@ -95,11 +99,54 @@ export class PollingManager {
             this.logGraphQLResponse(data);
             await this.onDataReceived(data);
         } catch (error) {
+            const message = error instanceof Error ? error.message : String(error);
+            // Handle "Cannot query field X on type Y" by disabling the related capability
+            // and deferring a rebuilt query to the next poll cycle. Existing states are
+            // preserved — no cleanup is triggered because no data was delivered.
+            if (message.includes('Cannot query field')) {
+                const disabled = this.degradeCapabilitiesFromError(message);
+                if (disabled.length > 0) {
+                    this.adapter.log.warn(
+                        `GraphQL schema rejected a field; disabled capabilities ${disabled.join(', ')}. Next poll will rebuild the query.`,
+                    );
+                    return;
+                }
+            }
             if (error instanceof Error) {
                 throw new Error(`GraphQL error: ${error.message}`);
             }
             throw error;
         }
+    }
+
+    /**
+     * Parse a "Cannot query field" error and turn off the matching capability flag.
+     * Mutates the shared capabilities object so the next poll rebuilds the query.
+     *
+     * @param message - Full error message from Apollo/GraphQL
+     * @returns Names of capabilities that were disabled
+     */
+    private degradeCapabilitiesFromError(message: string): string[] {
+        const disabled: string[] = [];
+        const fieldToCapability: Record<string, CapabilityKey> = {
+            temperature: 'temperatureMetrics',
+            isUpdateAvailable: 'dockerUpdateFlag',
+            containerUpdateStatuses: 'dockerContainerUpdateStatuses',
+            pause: 'dockerPause',
+            unpause: 'dockerUnpause',
+            updateContainer: 'dockerUpdate',
+        };
+        for (const [field, capability] of Object.entries(fieldToCapability)) {
+            const regex = new RegExp(`Cannot query field "${field}"`);
+            if (regex.test(message) && this.capabilities[capability]) {
+                this.capabilities[capability] = false;
+                disabled.push(capability);
+                if (!this.reportedMissingFields.has(field)) {
+                    this.reportedMissingFields.add(field);
+                }
+            }
+        }
+        return disabled;
     }
 
     /**
@@ -130,7 +177,7 @@ export class PollingManager {
      * @param definitions - Array of domain definitions to build query from
      */
     private buildQuery(definitions: readonly DomainDefinition[]): string | null {
-        const builder = new GraphQLSelectionBuilder();
+        const builder = new GraphQLSelectionBuilder(this.capabilities);
         for (const definition of definitions) {
             builder.addSelections(definition.selection);
         }

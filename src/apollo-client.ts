@@ -6,6 +6,8 @@ import type { ClientOptions } from 'ws';
 import WebSocket from 'ws';
 import { fetch, Agent } from 'undici';
 import type { AdapterInterface } from './types/adapter-types';
+import type { Capabilities } from './shared/capabilities';
+import { allCapabilitiesEnabled } from './shared/capabilities';
 
 /**
  * Configuration options for the Unraid Apollo GraphQL client
@@ -186,6 +188,65 @@ export class UnraidApolloClient {
             query: gql(subscription),
             variables,
         });
+    }
+
+    /**
+     * Probe the Unraid GraphQL schema for optional features.
+     * Falls back to "all enabled" on errors so established installations
+     * do not lose functionality if introspection is rate-limited or blocked.
+     *
+     * @returns Promise resolving to detected capability flags
+     */
+    async introspectCapabilities(): Promise<Capabilities> {
+        const probeQuery = `
+            query UnraidCapabilityProbe {
+                metricsType: __type(name: "Metrics") { fields { name } }
+                dockerType: __type(name: "Docker") { fields { name } }
+                dockerContainerType: __type(name: "DockerContainer") { fields { name } }
+                dockerMutationsType: __type(name: "DockerMutations") { fields { name } }
+            }
+        `;
+
+        try {
+            type ProbeResult = {
+                metricsType?: { fields?: Array<{ name: string }> } | null;
+                dockerType?: { fields?: Array<{ name: string }> } | null;
+                dockerContainerType?: { fields?: Array<{ name: string }> } | null;
+                dockerMutationsType?: { fields?: Array<{ name: string }> } | null;
+            };
+
+            const result = await this.query<ProbeResult>(probeQuery);
+            const has = (fields: Array<{ name: string }> | undefined, name: string): boolean =>
+                Array.isArray(fields) && fields.some(f => f.name === name);
+
+            const metricsFields = result?.metricsType?.fields;
+            const dockerFields = result?.dockerType?.fields;
+            const containerFields = result?.dockerContainerType?.fields;
+            const mutationFields = result?.dockerMutationsType?.fields;
+
+            const capabilities: Capabilities = {
+                temperatureMetrics: has(metricsFields, 'temperature'),
+                dockerUpdateFlag: has(containerFields, 'isUpdateAvailable'),
+                dockerContainerUpdateStatuses: has(dockerFields, 'containerUpdateStatuses'),
+                dockerPause: has(mutationFields, 'pause'),
+                dockerUnpause: has(mutationFields, 'unpause'),
+                dockerUpdate: has(mutationFields, 'updateContainer'),
+            };
+
+            this.logger.info(
+                `Unraid capabilities: temperature=${capabilities.temperatureMetrics}, ` +
+                    `dockerUpdateFlag=${capabilities.dockerUpdateFlag}, ` +
+                    `dockerUpdateStatuses=${capabilities.dockerContainerUpdateStatuses}, ` +
+                    `pause=${capabilities.dockerPause}, unpause=${capabilities.dockerUnpause}, ` +
+                    `update=${capabilities.dockerUpdate}`,
+            );
+            return capabilities;
+        } catch (error) {
+            this.logger.warn(
+                `Capability introspection failed, assuming all features are available: ${error instanceof Error ? error.message : String(error)}`,
+            );
+            return allCapabilitiesEnabled();
+        }
     }
 
     /**
