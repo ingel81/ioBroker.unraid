@@ -188,6 +188,8 @@ The adapter creates a structured tree of objects for the monitored data:
 
 - (ingel81) Release testing with npm, reloaded2
 
+[Older changelogs can be found there](CHANGELOG_OLD.md)
+
 ## License
 
 MIT License
