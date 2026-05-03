@@ -1,8 +1,21 @@
 {
   "common": {
     "name": "unraid",
-    "version": "0.8.0",
+    "version": "0.9.0",
     "news": {
+      "0.9.0": {
+        "en": "New mainboard temperature sensors (chipset, ambient, ...) as an optional data domain\nNew update indicator per Docker container plus a summary (`docker.updates.hasUpdates` / `availableCount`)\nNew Pause, Resume and Update buttons for Docker containers\nRequires Unraid 7.2 or newer for the new features (tested on 7.2.4). Older Unraid versions keep working as before — new states are silently omitted and existing data is preserved.",
+        "de": "Neue Mainboard-Temperatursensoren (Chipset, Umgebung, ...) als optionaler Datenbereich\nNeuer Update-Indikator pro Docker-Container plus eine Zusammenfassung (`docker.updates.hasUpdates` / `availableCount`)\nNeue Pause-, Wiederaufnahme- und Update-Tasten für Docker-Container\nErfordert Unraid 7.2 oder neuer für die neuen Funktionen (getestet am 7.2.4). Ältere Unraid-Versionen arbeiten wie bisher - neue Staaten werden still weggelassen und bestehende Daten erhalten.",
+        "ru": "Новые датчики температуры (чипсет, окружающая среда, ...) в качестве дополнительного домена данных\nИндикатор обновления для контейнера Docker плюс резюме («docker.updates.hasUpdates» / «доступный счет»)\nНовые кнопки паузы, резюме и обновления для контейнеров Docker\nТребуется Unraid 7.2 или новее для новых функций (тестируется на 7.2.4). Старые версии Unraid продолжают работать так же, как и раньше — новые состояния тихо опускаются, а существующие данные сохраняются.",
+        "pt": "Novos sensores de temperatura da placa principal (chipset, ambiente, ...) como um domínio de dados opcional\nNovo indicador de atualização por recipiente Docker mais um resumo (`docker.updates.hasUpdates` / `availableCount`)\nNovos botões de Pausa, Continuação e Atualização para recipientes de Docker\nRequer Unraid 7.2 ou mais recente para as novas características (testado em 7.2.4). Versões Unraid mais antigas continuam funcionando como antes — novos estados são silenciosamente omitidos e dados existentes são preservados.",
+        "nl": "Nieuwe mainboard temperatuursensoren (chipset, omgeving, ...) als optioneel datadomein\nNieuwe update indicator per Docker container plus een samenvatting (\nNieuwe Pauze, Hervatten en bijwerken knoppen voor Docker containers\nVereist Unraid 7.2 of nieuwer voor de nieuwe functies (getest op 7.2.4). Oudere Unraid-versies blijven werken zoals voorheen .",
+        "fr": "Nouveaux capteurs de température de la carte principale (chipset, ambiant, ...) en option comme domaine de données\nNouvel indicateur de mise à jour par conteneur Docker plus un résumé (`docker.updates.hasUpdates` / `availableCount`)\nNouveaux boutons Pause, Resume et Update pour les conteneurs Docker\nNécessite Unraid 7.2 ou plus récent pour les nouvelles fonctionnalités (essai sur 7.2.4). Les anciennes versions Unraid continuent de fonctionner comme avant — de nouveaux états sont silencieusement omis et les données existantes sont conservées.",
+        "it": "Nuovi sensori di temperatura mainboard (chipset, ambiente, ...) come dominio di dati opzionale\nNuovo indicatore di aggiornamento per Docker contenitore più un riassunto (`docker.updates.hasUpdates` / `disponibileCount`)\nNuovi pulsanti Pause, Ripresa e Aggiornamento per contenitori Docker\nRichiede unraid 7.2 o più recente per le nuove funzionalità (testata su 7.2.4). Le versioni precedenti di Unraid continuano a funzionare come prima — i nuovi stati sono silenziosamente omessi e i dati esistenti sono conservati.",
+        "es": "Nuevos sensores de temperatura central (chipset, ambient, ...) como un dominio de datos opcional\nNuevo indicador de actualización por contenedor Docker más un resumen (`docker.updates.hasUpdates` / `availableCount`)\nNuevos botones Pausa, Resumir y Actualizar para contenedores Docker\nRequiere Unraid 7.2 o más nuevo para las nuevas características (probado en 7.2.4). Las versiones más antiguas de Unraid siguen funcionando como antes; los nuevos estados se omiten silenciosamente y se conservan los datos existentes.",
+        "pl": "Nowe czujniki temperatury na płycie głównej (chipset, ambient,...) jako opcjonalna domena danych\nNowy wskaźnik aktualizacji na pojemnik Docker plus podsumowanie ('docker.updates.hasUpdates' / 'availableCount')\nNowe przyciski Pause, Resume i Update dla kontenerów Docker\nWymaga Unraid 7.2 lub nowsze dla nowych funkcji (testowane na 7.2.4). Starsze wersje Unraid działają jak wcześniej - nowe stany są cicho pomijane i istniejące dane są zachowane.",
+        "uk": "Нові датчики температури основного картону (chipset, ambient, ...) як додатковий домен даних\nНовий індикатор оновлення за контейнером Docker плюс резюме (`docker.updates.hasUpdates` / `4.1Count`)\nНова пауза, Резюме та оновлення кнопки для контейнерів Docker\nВимагає Unraid 7.2 або новачок для нових функцій (проводиться на 7.2.4). Старші версії Unraid працюють як раніше — нові стани безшумні і існуючі дані зберігаються.",
+        "zh-cn": "新的主板温度传感器(芯片、环境、.)作为可选数据域\n每个Docker容器的新更新指标加摘要(`docker.updates.has Updates ' /`可用Coundable ' )\nDocker 容器的新暂停、恢复和更新按钮\n需要为新功能提供7.2或更新(经7.2.4测试)。 古老的Uraid版本保持前作——新状态被默默省略,现有数据被保存."
+      },
       "0.8.0": {
         "en": "**Node.js 22 or higher is now required** (Node 20 reached end-of-life on 2026-03-24)\nRequires ioBroker admin 7.6.20 or newer\nUpdated runtime dependencies (graphql, undici, ws, @apollo/client)\nInternal: CI migrated to Node 22/24, dev dependencies refreshed",
         "de": "** Node.js 22 oder höher ist jetzt erforderlich** (Nr. 20 erreichte am 2026-03-24 Lebensende)\nErfordert ioBroker admin 7.6.20 oder neuer\nAktualisierte Laufzeitabhängigkeiten (graphql, undici, ws, @apollo/client)\nIntern: CI migriert zu Node 22/24, dev Abhängigkeiten erfrischt",
@@ -80,19 +93,6 @@
         "pl": "fix: Użyj themecolors w ustawieniach",
         "uk": "виправити: Використовуйте Themecolors в налаштуваннях",
         "zh-cn": "固定: 在设置中使用主题颜色"
-      },
-      "0.6.0": {
-        "en": "Added VM and Docker container control functionality\nCode refactoring and cleanup\nTranslation",
-        "de": "VM und Docker Container Control Funktionalität hinzugefügt\nCode Refactoring und Reinigung\nÜbersetzung",
-        "ru": "Добавлены функции управления контейнерами VM и Docker\nРефакторинг и очистка кода\nПеревод",
-        "pt": "Adicionada funcionalidade de controle de container VM e Docker\nRefatoração de código e limpeza\nTradução",
-        "nl": "Toegevoegd VM en Docker container controle functionaliteit\nCode refactoring en opruiming\nVertaling",
-        "fr": "Ajout de la fonctionnalité de contrôle des conteneurs VM et Docker\nRefacturation et nettoyage du code\nTraduction",
-        "it": "Aggiunta funzionalità di controllo dei container VM e Docker\nCodici rifattori e pulizia\nTraduzione:",
-        "es": "Función de control de contenedores VM y Docker\nRefactorización y limpieza del código\nTraducción",
-        "pl": "Dodano funkcję sterowania kontenerem VM i Docker\nPrzetwarzanie i czyszczenie kodu\nTłumaczenie",
-        "uk": "Додана функція керування контейнерами VM і Docker\nРефакторинг коду і очищення\nПереклад",
-        "zh-cn": "添加 VM 和 Docker 容器控制功能\n代码重构和清理\n翻译"
       }
     },
     "titleLang": {
