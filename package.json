@@ -27,7 +27,7 @@
     "graphql": "^16.13.2",
     "graphql-ws": "^6.0.8",
     "undici": "^8.1.0",
-    "ws": "^8.20.0"
+    "ws": "^8.21.0"
   },
   "devDependencies": {
     "@alcalzone/release-script": "^5.2.1",
