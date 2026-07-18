@@ -23,7 +23,7 @@
   },
   "dependencies": {
     "@apollo/client": "^4.1.7",
-    "@iobroker/adapter-core": "^3.3.2",
+    "@iobroker/adapter-core": "^3.4.1",
     "graphql": "^16.13.2",
     "graphql-ws": "^6.0.8",
     "undici": "^8.1.0",
