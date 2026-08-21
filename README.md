@@ -100,6 +100,13 @@ The adapter creates a structured tree of objects for the monitored data:
   Placeholder for the next version (at the beginning of the line):
   ### **WORK IN PROGRESS**
 -->
+### **WORK IN PROGRESS**
+
+- (ingel81) Security fixes in the network libraries (`ws`, `undici`)
+- (ingel81) **Node.js 22.19.0 or higher is required** — this has been the case since 0.8.0, the adapter just declared 22.0.0 by mistake
+- (ingel81) Completed the settings translations for all languages (Ukrainian was mostly missing)
+- (ingel81) Updated Apollo Client, graphql-ws and the ioBroker adapter core
+
 ### 0.9.0 (2026-05-03)
 
 - (ingel81) New mainboard temperature sensors (chipset, ambient, ...) as an optional data domain
@@ -187,6 +194,8 @@ The adapter creates a structured tree of objects for the monitored data:
 ### 0.2.2 (2025-09-21)
 
 - (ingel81) Release testing with npm, reloaded2
+
+[Older changelogs can be found there](CHANGELOG_OLD.md)
 
 ## License
 

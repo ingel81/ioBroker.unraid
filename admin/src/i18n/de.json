@@ -8,6 +8,8 @@
     "allowSelfSigned_help": "Nur aktivieren, wenn Ihr Unraid-Server ein selbstsigniertes HTTPS-Zertifikat verwendet",
     "pollIntervalSeconds": "Abfrageintervall (Sekunden)",
     "pollIntervalSeconds_help": "Definieren Sie, wie oft der Adapter Daten von der Unraid GraphQL API aktualisieren soll",
+    "useSubscriptions": "WebSocket-Subscriptions verwenden (experimentell)",
+    "useSubscriptions_help": "Aktiviert Echtzeit-Updates für CPU- und Speicher-Metriken über GraphQL-Subscriptions. Fällt auf Polling zurück, wenn nicht verfügbar.",
     "section.connection": "Verbindung",
     "section.polling": "Abfrage",
     "section.domains": "Datenbereiche",

@@ -13,13 +13,6 @@ import pl from './i18n/pl.json';
 import zhCn from './i18n/zh-cn.json';
 
 /**
- * Translation structure for internationalization
- */
-interface Translations {
-    [lang: string]: Record<string, string>;
-}
-
-/**
  * Main application component for the Unraid adapter configuration.
  * Extends GenericApp from ioBroker React framework.
  */
@@ -44,7 +37,7 @@ class App extends GenericApp {
                 es,
                 pl,
                 'zh-cn': zhCn,
-            } as Translations,
+            },
         };
 
         super(props, extendedProps);
@@ -80,7 +73,7 @@ class App extends GenericApp {
                 >
                     <Settings
                         native={nativeConfig}
-                        onChange={(attr, value) => this.updateNativeValue(attr as string, value)}
+                        onChange={(attr, value) => this.updateNativeValue(attr, value)}
                         themeType={this.state.themeType}
                     />
                 </div>

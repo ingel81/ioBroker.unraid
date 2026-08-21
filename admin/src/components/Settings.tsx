@@ -389,11 +389,11 @@ class Settings extends React.Component<SettingsProps, SettingsState> {
                                 onChange={(_event, checked) => this.handleDomainToggle(node, checked)}
                             />
                         }
-                        label={I18n.t(node.label as AdminWord)}
+                        label={I18n.t(node.label)}
                     />
                 </TreeRow>
                 {node.description ? (
-                    <TreeDescription variant="caption">{I18n.t(node.description as AdminWord)}</TreeDescription>
+                    <TreeDescription variant="caption">{I18n.t(node.description)}</TreeDescription>
                 ) : null}
                 {hasChildren && isExpanded ? (
                     <TreeChildren>

@@ -1,6 +1,6 @@
 /**
  * Type definitions for adapter interfaces to avoid TypeScript issues
- * with the @iobroker/adapter-core types
+ * with the `@iobroker/adapter-core` types
  */
 
 import type { AdapterInstance } from '@iobroker/adapter-core';
