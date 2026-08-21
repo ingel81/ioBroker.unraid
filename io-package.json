@@ -1,8 +1,21 @@
 {
   "common": {
     "name": "unraid",
-    "version": "0.9.0",
+    "version": "0.10.0",
     "news": {
+      "0.10.0": {
+        "en": "Security fixes in the network libraries (`ws`, `undici`)\n**Node.js 22.19.0 or higher is required** — this has been the case since 0.8.0, the adapter just declared 22.0.0 by mistake\nCompleted the settings translations for all languages (Ukrainian was mostly missing)\nUpdated Apollo Client, graphql-ws and the ioBroker adapter core",
+        "de": "Sicherheitskorrekturen in den Netzwerkbibliotheken (`ws`, `undici`)\n**Node.js 22.19.0 oder höher erforderlich** – dies ist seit Version 0.8.0 der Fall; der Adapter hat fälschlicherweise Version 22.0.0 angegeben.\nDie Übersetzungen der Einstellungen für alle Sprachen wurden abgeschlossen (die ukrainische Sprache fehlte größtenteils).\nApollo Client, graphql-ws und der ioBroker-Adapterkern wurden aktualisiert.",
+        "ru": "Исправлены ошибки безопасности в сетевых библиотеках (`ws`, `undici`).\n**Требуется Node.js версии 22.19.0 или выше** — так было начиная с версии 0.8.0, адаптер просто по ошибке указал версию 22.0.0.\nЗавершен перевод настроек для всех языков (в основном отсутствовал украинский).\nОбновлены Apollo Client, graphql-ws и ядро адаптера ioBroker.",
+        "pt": "Correções de segurança nas bibliotecas de rede (`ws`, `undici`)\n**É necessário o Node.js versão 22.19.0 ou superior** — isso ocorre desde a versão 0.8.0; o adaptador simplesmente declarou a versão 22.0.0 por engano.\nConcluí as traduções das configurações para todos os idiomas (faltava principalmente o ucraniano).\nAtualização do Apollo Client, graphql-ws e do núcleo do adaptador ioBroker.",
+        "nl": "Beveiligingspatches in de netwerkbibliotheken (`ws`, `undici`)\n**Node.js 22.19.0 of hoger is vereist** — dit is al het geval sinds versie 0.8.0, de adapter heeft per ongeluk 22.0.0 gedeclareerd.\nDe vertalingen van de instellingen voor alle talen zijn voltooid (Oekraïens ontbrak grotendeels).\nDe Apollo Client, graphql-ws en de ioBroker-adapterkern zijn bijgewerkt.",
+        "fr": "Correctifs de sécurité dans les bibliothèques réseau (`ws`, `undici`)\n**Node.js 22.19.0 ou une version supérieure est requise** — c'est le cas depuis la version 0.8.0 ; l'adaptateur a simplement déclaré la version 22.0.0 par erreur.\nTraduction des paramètres terminée pour toutes les langues (l'ukrainien était en grande partie manquant).\nMise à jour du client Apollo, de graphql-ws et du noyau de l'adaptateur ioBroker",
+        "it": "Correzioni di sicurezza nelle librerie di rete (`ws`, `undici`)\n**È richiesto Node.js 22.19.0 o superiore** — questo è vero dalla versione 0.8.0, l'adattatore ha semplicemente dichiarato la versione 22.0.0 per errore.\nHo completato le traduzioni delle impostazioni per tutte le lingue (mancava quasi del tutto l'ucraino).\nAggiornamenti al client Apollo, a graphql-ws e al core dell'adattatore ioBroker.",
+        "es": "Correcciones de seguridad en las bibliotecas de red (`ws`, `undici`)\n**Se requiere Node.js 22.19.0 o superior** — esto ha sido así desde la versión 0.8.0; el adaptador simplemente declaró 22.0.0 por error.\nSe completaron las traducciones de la configuración para todos los idiomas (faltaba en su mayoría el ucraniano).\nSe han actualizado Apollo Client, graphql-ws y el núcleo del adaptador ioBroker.",
+        "pl": "Poprawki bezpieczeństwa w bibliotekach sieciowych (`ws`, `undici`)\n**Wymagany jest Node.js 22.19.0 lub nowszy** — tak jest od wersji 0.8.0, adapter po prostu przez pomyłkę zadeklarował 22.0.0\nUkończono tłumaczenia ustawień dla wszystkich języków (w większości brakowało ukraińskiego)\nZaktualizowano klienta Apollo, graphql-ws i rdzeń adaptera ioBroker",
+        "uk": "Виправлення безпеки в мережевих бібліотеках (`ws`, `undici`)\n**Потрібна версія Node.js 22.19.0 або вище** — так було з версії 0.8.0, адаптер помилково оголосив 22.0.0\nЗавершено переклади налаштувань для всіх мов (українська здебільшого була відсутня)\nОновлено клієнт Apollo, graphql-ws та ядро адаптера ioBroker.",
+        "zh-cn": "网络库（`ws`、`undici`）中的安全修复\n**需要 Node.js 22.19.0 或更高版本**——自 0.8.0 版本以来一直如此，适配器只是错误地声明了 22.0.0 版本。\n已完成所有语言的设置翻译（乌克兰语翻译基本缺失）。\n更新了 Apollo Client、graphql-ws 和 ioBroker 适配器核心"
+      },
       "0.9.0": {
         "en": "New mainboard temperature sensors (chipset, ambient, ...) as an optional data domain\nNew update indicator per Docker container plus a summary (`docker.updates.hasUpdates` / `availableCount`)\nNew Pause, Resume and Update buttons for Docker containers\nRequires Unraid 7.2 or newer for the new features (tested on 7.2.4). Older Unraid versions keep working as before — new states are silently omitted and existing data is preserved.",
         "de": "Neue Mainboard-Temperatursensoren (Chipset, Umgebung, ...) als optionaler Datenbereich\nNeuer Update-Indikator pro Docker-Container plus eine Zusammenfassung (`docker.updates.hasUpdates` / `availableCount`)\nNeue Pause-, Wiederaufnahme- und Update-Tasten für Docker-Container\nErfordert Unraid 7.2 oder neuer für die neuen Funktionen (getestet am 7.2.4). Ältere Unraid-Versionen arbeiten wie bisher - neue Staaten werden still weggelassen und bestehende Daten erhalten.",
@@ -80,19 +93,6 @@
         "pl": "pt.2",
         "uk": "npm розширення pt.2",
         "zh-cn": "npm 部署调整pt.2"
-      },
-      "0.6.1": {
-        "en": "fix: Use themecolors in settings",
-        "de": "fix: Verwenden Sie Themecolors in Einstellungen",
-        "ru": "исправить: Используйте тематические цвета в настройках",
-        "pt": "correção: Use as cores do tema nas configurações",
-        "nl": "fix: Gebruik themakleuren in instellingen",
-        "fr": "correction: Utiliser les couleurs du thème dans les paramètres",
-        "it": "fix: Utilizzare colori a tema nelle impostazioni",
-        "es": "fijación: Use los colores temáticos en la configuración",
-        "pl": "fix: Użyj themecolors w ustawieniach",
-        "uk": "виправити: Використовуйте Themecolors в налаштуваннях",
-        "zh-cn": "固定: 在设置中使用主题颜色"
       }
     },
     "titleLang": {
