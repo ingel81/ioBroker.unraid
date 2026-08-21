@@ -22,14 +22,25 @@ updates:
       - dependency-name: '@types/node'
         update-types:
           - 'version-update:semver-major'
-      # @iobroker/adapter-react-v5 requires @mui/material ^6.5.0, so MUI 7+ cannot be
-      # resolved (npm ERESOLVE). Revisit once adapter-react-v5 supports MUI 9.
+      # The admin UI follows what @iobroker/adapter-react-v5 declares as its peers:
+      # react/react-dom ^18.3.1 and @mui/material ^6.5.0. Major bumps beyond that
+      # cannot be installed (npm ERESOLVE). React 19 slipped in through an automated
+      # update once and had to be reverted. Revisit when adapter-react-v5 moves on.
       - dependency-name: '@mui/*'
         update-types:
           - 'version-update:semver-major'
-      # Versions >= 8.1.8 declare peer react ^18.3.1 and therefore conflict with React 19,
-      # which this adapter and admin 8 both use. Pinned to 8.0.16 in package.json.
-      - dependency-name: '@iobroker/adapter-react-v5'
+      - dependency-name: 'react'
+        update-types:
+          - 'version-update:semver-major'
+      - dependency-name: 'react-dom'
+        update-types:
+          - 'version-update:semver-major'
+      - dependency-name: '@types/react'
+        update-types:
+          - 'version-update:semver-major'
+      - dependency-name: '@types/react-dom'
+        update-types:
+          - 'version-update:semver-major'
 
   - package-ecosystem: 'github-actions'
     directory: '/'
