@@ -1163,7 +1163,7 @@ export class DynamicResourceManager {
                     name,
                     desc: control.common.desc,
                     custom: {},
-                } as ioBroker.StateCommon,
+                },
                 native: {
                     resourceType: 'docker',
                     resourceId: containerId,
@@ -1204,7 +1204,7 @@ export class DynamicResourceManager {
                     name,
                     desc: control.common.desc,
                     custom: {},
-                } as ioBroker.StateCommon,
+                },
                 native: {
                     resourceType: 'docker',
                     resourceId: containerId,
@@ -1248,7 +1248,7 @@ export class DynamicResourceManager {
                     name,
                     desc: control.common.desc,
                     custom: {},
-                } as ioBroker.StateCommon,
+                },
                 native: {
                     resourceType: 'vm',
                     resourceId: vmId,

@@ -17,6 +17,19 @@ updates:
     versioning-strategy: 'increase'
     cooldown:
       default-days: 7
+    ignore:
+      # Typings must match the minimum supported node version (22), see repochecker W0066/W8917
+      - dependency-name: '@types/node'
+        update-types:
+          - 'version-update:semver-major'
+      # @iobroker/adapter-react-v5 requires @mui/material ^6.5.0, so MUI 7+ cannot be
+      # resolved (npm ERESOLVE). Revisit once adapter-react-v5 supports MUI 9.
+      - dependency-name: '@mui/*'
+        update-types:
+          - 'version-update:semver-major'
+      # Versions >= 8.1.8 declare peer react ^18.3.1 and therefore conflict with React 19,
+      # which this adapter and admin 8 both use. Pinned to 8.0.16 in package.json.
+      - dependency-name: '@iobroker/adapter-react-v5'
 
   - package-ecosystem: 'github-actions'
     directory: '/'
