@@ -22,7 +22,7 @@
     "node": ">= 22.19.0"
   },
   "dependencies": {
-    "@apollo/client": "^4.2.12",
+    "@apollo/client": "^4.3.3",
     "@iobroker/adapter-core": "^3.4.3",
     "graphql": "^16.13.2",
     "graphql-ws": "^6.2.1",
