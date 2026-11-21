@@ -1,8 +1,13 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.VM_CONTROL_STATES = exports.DOCKER_UPDATE_ALL_STATE = exports.DOCKER_CONTROL_STATES = exports.expandSelection = exports.collectNodeIds = exports.domainDefinitionById = exports.domainDefinitions = exports.getDomainAncestors = exports.defaultEnabledDomains = exports.allDomainIds = exports.domainNodeById = exports.domainTree = void 0;
+exports.VM_CONTROL_STATES = exports.DOCKER_UPDATE_ALL_STATE = exports.DOCKER_CONTROL_STATES = exports.expandSelection = exports.collectNodeIds = exports.domainDefinitionById = exports.domainDefinitions = exports.getDomainAncestors = exports.defaultEnabledDomains = exports.allDomainIds = exports.domainNodeById = exports.domainTree = exports.EXPENSIVE_FIELD_INTERVAL_MS = void 0;
 exports.isoToTimestamp = isoToTimestamp;
 exports.leadingNumberOrNull = leadingNumberOrNull;
+/**
+ * How often fields marked `expensive` are requested (30 minutes).
+ * Example: `sizeRootFs` makes Docker calculate the size of every container.
+ */
+exports.EXPENSIVE_FIELD_INTERVAL_MS = 30 * 60_000;
 /**
  * Complete domain tree structure for the admin UI.
  * Defines all available domains and their hierarchy.
@@ -800,7 +805,8 @@ const domainDefinitionsList = [
                             { name: 'state' },
                             { name: 'status' },
                             { name: 'autoStart' },
-                            { name: 'sizeRootFs' },
+                            // Docker calculates the size of every container for this field
+                            { name: 'sizeRootFs', expensive: true },
                             { name: 'isUpdateAvailable', requiresCapability: 'dockerUpdateFlag' },
                         ],
                     },

@@ -59,7 +59,18 @@ export interface FieldSpec {
     selection?: readonly FieldSpec[];
     /** If set, the field is only included when this capability flag is true */
     requiresCapability?: CapabilityKey;
+    /**
+     * Expensive for the Unraid server and rarely changing. Requested only every
+     * `EXPENSIVE_FIELD_INTERVAL_MS` instead of on every poll.
+     */
+    expensive?: boolean;
 }
+
+/**
+ * How often fields marked `expensive` are requested (30 minutes).
+ * Example: `sizeRootFs` makes Docker calculate the size of every container.
+ */
+export const EXPENSIVE_FIELD_INTERVAL_MS = 30 * 60_000;
 
 /**
  * Root-level GraphQL query selection.
@@ -932,7 +943,8 @@ const domainDefinitionsList: readonly DomainDefinition[] = [
                             { name: 'state' },
                             { name: 'status' },
                             { name: 'autoStart' },
-                            { name: 'sizeRootFs' },
+                            // Docker calculates the size of every container for this field
+                            { name: 'sizeRootFs', expensive: true },
                             { name: 'isUpdateAvailable', requiresCapability: 'dockerUpdateFlag' },
                         ],
                     },

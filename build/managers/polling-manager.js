@@ -2,6 +2,7 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.PollingManager = void 0;
 exports.describePollingError = describePollingError;
+const unraid_domains_1 = require("../shared/unraid-domains");
 const capabilities_1 = require("../shared/capabilities");
 const selection_builder_1 = require("../graphql/selection-builder");
 /**
@@ -23,6 +24,8 @@ class PollingManager {
     pollPending = false;
     /** Last reported error (used to log repeated failures only once) */
     lastError;
+    /** Time of the last successful poll that included the expensive fields (0 = never) */
+    lastExpensivePoll = 0;
     /**
      * Create a new polling manager
      *
@@ -91,7 +94,8 @@ class PollingManager {
             this.pollPending = true;
             return;
         }
-        const query = this.buildQuery(definitions);
+        const includeExpensive = Date.now() - this.lastExpensivePoll >= unraid_domains_1.EXPENSIVE_FIELD_INTERVAL_MS;
+        const query = this.buildQuery(definitions, includeExpensive);
         if (!query) {
             this.adapter.log.warn('No query could be built for the current selection.');
             return;
@@ -99,6 +103,9 @@ class PollingManager {
         this.pollRunning = true;
         try {
             const data = await this.apolloClient.query(query);
+            if (includeExpensive) {
+                this.lastExpensivePoll = Date.now();
+            }
             this.logGraphQLResponse(data);
             await this.onConnectionChange(true);
             if (this.lastError) {
@@ -201,9 +208,11 @@ class PollingManager {
      * Build a GraphQL query from domain definitions
      *
      * @param definitions - Array of domain definitions to build query from
+     * @param includeExpensive - Include fields marked `expensive` (see EXPENSIVE_FIELD_INTERVAL_MS)
+     * @returns GraphQL query or null if nothing is selected
      */
-    buildQuery(definitions) {
-        const builder = new selection_builder_1.GraphQLSelectionBuilder(this.capabilities);
+    buildQuery(definitions, includeExpensive = true) {
+        const builder = new selection_builder_1.GraphQLSelectionBuilder(this.capabilities, includeExpensive);
         for (const definition of definitions) {
             builder.addSelections(definition.selection);
         }

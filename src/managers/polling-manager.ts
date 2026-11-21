@@ -1,6 +1,7 @@
 import type { AdapterInterface } from '../types/adapter-types';
 import type { UnraidApolloClient } from '../apollo-client';
 import type { DomainDefinition } from '../shared/unraid-domains';
+import { EXPENSIVE_FIELD_INTERVAL_MS } from '../shared/unraid-domains';
 import type { Capabilities } from '../shared/capabilities';
 import { CAPABILITY_FIELDS } from '../shared/capabilities';
 import { GraphQLSelectionBuilder } from '../graphql/selection-builder';
@@ -19,6 +20,8 @@ export class PollingManager {
     private pollPending = false;
     /** Last reported error (used to log repeated failures only once) */
     private lastError?: string;
+    /** Time of the last successful poll that included the expensive fields (0 = never) */
+    private lastExpensivePoll = 0;
 
     /**
      * Create a new polling manager
@@ -97,7 +100,8 @@ export class PollingManager {
             return;
         }
 
-        const query = this.buildQuery(definitions);
+        const includeExpensive = Date.now() - this.lastExpensivePoll >= EXPENSIVE_FIELD_INTERVAL_MS;
+        const query = this.buildQuery(definitions, includeExpensive);
         if (!query) {
             this.adapter.log.warn('No query could be built for the current selection.');
             return;
@@ -106,6 +110,9 @@ export class PollingManager {
         this.pollRunning = true;
         try {
             const data = await this.apolloClient.query<Record<string, unknown>>(query);
+            if (includeExpensive) {
+                this.lastExpensivePoll = Date.now();
+            }
             this.logGraphQLResponse(data);
             await this.onConnectionChange(true);
             if (this.lastError) {
@@ -212,9 +219,11 @@ export class PollingManager {
      * Build a GraphQL query from domain definitions
      *
      * @param definitions - Array of domain definitions to build query from
+     * @param includeExpensive - Include fields marked `expensive` (see EXPENSIVE_FIELD_INTERVAL_MS)
+     * @returns GraphQL query or null if nothing is selected
      */
-    private buildQuery(definitions: readonly DomainDefinition[]): string | null {
-        const builder = new GraphQLSelectionBuilder(this.capabilities);
+    private buildQuery(definitions: readonly DomainDefinition[], includeExpensive = true): string | null {
+        const builder = new GraphQLSelectionBuilder(this.capabilities, includeExpensive);
         for (const definition of definitions) {
             builder.addSelections(definition.selection);
         }

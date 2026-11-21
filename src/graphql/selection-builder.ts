@@ -21,8 +21,12 @@ export class GraphQLSelectionBuilder {
      * @param capabilities - Optional capability flags. Fields with a
      *   `requiresCapability` attribute will be omitted if the flag is false.
      *   If omitted, all fields pass through (backwards compatible).
+     * @param includeExpensive - Whether fields marked `expensive` are included (default true)
      */
-    constructor(private readonly capabilities?: Capabilities) {}
+    constructor(
+        private readonly capabilities?: Capabilities,
+        private readonly includeExpensive = true,
+    ) {}
 
     /**
      * Add multiple root selections to the query builder
@@ -111,6 +115,9 @@ export class GraphQLSelectionBuilder {
     private addFields(target: FieldNode, fields: readonly FieldSpec[]): void {
         for (const field of fields) {
             if (!this.capabilityAllows(field.requiresCapability)) {
+                continue;
+            }
+            if (field.expensive && !this.includeExpensive) {
                 continue;
             }
             let child = target.get(field.name);

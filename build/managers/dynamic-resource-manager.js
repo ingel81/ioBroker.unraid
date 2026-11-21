@@ -7,6 +7,7 @@ exports.DynamicResourceManager = void 0;
 const data_transformers_1 = require("../utils/data-transformers");
 const unraid_domains_1 = require("../shared/unraid-domains");
 const state_names_json_1 = __importDefault(require("../translations/state-names.json"));
+const sensor_filter_1 = require("../shared/sensor-filter");
 /**
  * Manages dynamic resource detection and state creation
  * for CPU cores, array disks, Docker containers, shares, and VMs
@@ -403,7 +404,11 @@ class DynamicResourceManager {
                 await this.stateManager.updateState(`${containerPrefix}.state`, (0, data_transformers_1.toStringOrNull)(c.state));
                 await this.stateManager.updateState(`${containerPrefix}.status`, (0, data_transformers_1.toStringOrNull)(c.status));
                 await this.stateManager.updateState(`${containerPrefix}.autoStart`, (0, data_transformers_1.toBooleanOrNull)(c.autoStart));
-                await this.stateManager.updateState(`${containerPrefix}.sizeGb`, (0, data_transformers_1.bytesToGigabytes)(c.sizeRootFs));
+                // sizeRootFs is only requested every 30 minutes (expensive for Docker);
+                // keep the last value when the field is not part of this response.
+                if ('sizeRootFs' in c) {
+                    await this.stateManager.updateState(`${containerPrefix}.sizeGb`, (0, data_transformers_1.bytesToGigabytes)(c.sizeRootFs));
+                }
                 if (this.dockerIsUpdateAvailableCreated.has(containerPrefix)) {
                     await this.stateManager.updateState(`${containerPrefix}.isUpdateAvailable`, resolveIsUpdateAvailable(name, c.isUpdateAvailable));
                 }
@@ -668,6 +673,10 @@ class DynamicResourceManager {
             if (!idValue) {
                 continue;
             }
+            if (!(0, sensor_filter_1.isTemperatureSensorId)(idValue)) {
+                // Voltage, fan or power reading that Unraid reports as a temperature
+                continue;
+            }
             let resourceId = (0, data_transformers_1.sanitizeResourceName)(idValue);
             if (!resourceId) {
                 resourceId = 'sensor';
@@ -699,6 +708,7 @@ class DynamicResourceManager {
             this.temperatureBoardDetected = true;
             this.adapter.log.info(`Detected ${boardSensors.length} mainboard temperature sensors`);
             await this.stateManager.writeState('metrics.temperature.board.count', { type: 'number', role: 'value', unit: '' }, boardSensors.length);
+            await this.removeStaleBoardSensors(currentIds);
             for (const sensor of boardSensors) {
                 const prefix = `metrics.temperature.board.${sensor.resourceId}`;
                 await this.stateManager.writeState(`${prefix}.name`, { type: 'string', role: 'text' }, null);
@@ -732,6 +742,31 @@ class DynamicResourceManager {
                 resourceMap.set(sensor.resourceId, { id: sensor.resourceId });
             }
             await this.objectManager.handleDynamicResources('temperature', resourceMap);
+        }
+    }
+    /**
+     * Delete board sensor channels that are no longer reported (or no longer counted as
+     * temperatures). Objects created before the adapter start are not tracked by the
+     * ObjectManager, so they are looked up in the objects DB once per sensor-list change.
+     *
+     * @param keep - Sanitized resource ids of the sensors that stay
+     */
+    async removeStaleBoardSensors(keep) {
+        const relativePrefix = 'metrics.temperature.board.';
+        const fullPrefix = `${this.adapter.namespace}.${relativePrefix}`;
+        const view = await this.adapter.getObjectViewAsync('system', 'channel', {
+            startkey: fullPrefix,
+            endkey: `${fullPrefix}\u9999`,
+        });
+        for (const row of view?.rows ?? []) {
+            const resourceId = row.id.slice(fullPrefix.length);
+            if (!resourceId || resourceId.includes('.') || keep.has(resourceId)) {
+                continue;
+            }
+            const objectId = `${relativePrefix}${resourceId}`;
+            this.adapter.log.info(`Removing board sensor ${resourceId}: not a temperature or no longer reported`);
+            await this.adapter.delObjectAsync(objectId, { recursive: true });
+            this.stateManager.forgetObjects(objectId);
         }
     }
     async createDiskStates(prefix, disks) {
