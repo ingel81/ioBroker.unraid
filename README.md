@@ -102,7 +102,7 @@ The adapter creates a structured tree of objects for the monitored data:
   Placeholder for the next version (at the beginning of the line):
   ### **WORK IN PROGRESS**
 -->
-### **WORK IN PROGRESS**
+### 0.11.0 (2026-11-21)
 
 - (Schimi1983) New: a restart button for every Docker container, plus a button to update all containers at once (`docker.commands.updateAll`)
 - (Schimi1983) New data area "Parity check": status, progress, errors, speed, date and duration of the running or last parity check
@@ -141,10 +141,6 @@ The adapter creates a structured tree of objects for the monitored data:
 ### 0.7.2 (2026-01-04)
 
 - (ingel81) Updated dependencies and admin UI (React 19)
-
-### 0.7.1 (2025-11-30)
-
-- (ingel81) Minor pipeline issues fixed
 
 [Older changelogs can be found there](CHANGELOG_OLD.md)
 

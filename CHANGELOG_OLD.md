@@ -1,4 +1,8 @@
 # Older changes
+## 0.7.1 (2025-11-30)
+
+- (ingel81) Minor pipeline issues fixed
+
 ## 0.7.0 (2025-11-30)
 
 - (ingel81) Migrated admin UI to @iobroker/adapter-react-v5 (React 18, MUI v6)
