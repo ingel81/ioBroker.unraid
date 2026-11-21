@@ -13,6 +13,7 @@ import {
 } from '../utils/data-transformers';
 import { DOCKER_CONTROL_STATES, DOCKER_UPDATE_ALL_STATE, VM_CONTROL_STATES } from '../shared/unraid-domains';
 import stateTranslations from '../translations/state-names.json';
+import { isTemperatureSensorId } from '../shared/sensor-filter';
 
 /**
  * Manages dynamic resource detection and state creation
@@ -931,6 +932,10 @@ export class DynamicResourceManager {
             if (!idValue) {
                 continue;
             }
+            if (!isTemperatureSensorId(idValue)) {
+                // Voltage, fan or power reading that Unraid reports as a temperature
+                continue;
+            }
             let resourceId = sanitizeResourceName(idValue);
             if (!resourceId) {
                 resourceId = 'sensor';
@@ -975,6 +980,8 @@ export class DynamicResourceManager {
                 boardSensors.length,
             );
 
+            await this.removeStaleBoardSensors(currentIds);
+
             for (const sensor of boardSensors) {
                 const prefix = `metrics.temperature.board.${sensor.resourceId}`;
                 await this.stateManager.writeState(`${prefix}.name`, { type: 'string', role: 'text' }, null);
@@ -1012,6 +1019,32 @@ export class DynamicResourceManager {
                 resourceMap.set(sensor.resourceId, { id: sensor.resourceId });
             }
             await this.objectManager.handleDynamicResources('temperature', resourceMap);
+        }
+    }
+
+    /**
+     * Delete board sensor channels that are no longer reported (or no longer counted as
+     * temperatures). Objects created before the adapter start are not tracked by the
+     * ObjectManager, so they are looked up in the objects DB once per sensor-list change.
+     *
+     * @param keep - Sanitized resource ids of the sensors that stay
+     */
+    private async removeStaleBoardSensors(keep: Set<string>): Promise<void> {
+        const relativePrefix = 'metrics.temperature.board.';
+        const fullPrefix = `${this.adapter.namespace}.${relativePrefix}`;
+        const view = await this.adapter.getObjectViewAsync('system', 'channel', {
+            startkey: fullPrefix,
+            endkey: `${fullPrefix}\u9999`,
+        });
+        for (const row of view?.rows ?? []) {
+            const resourceId = row.id.slice(fullPrefix.length);
+            if (!resourceId || resourceId.includes('.') || keep.has(resourceId)) {
+                continue;
+            }
+            const objectId = `${relativePrefix}${resourceId}`;
+            this.adapter.log.info(`Removing board sensor ${resourceId}: not a temperature or no longer reported`);
+            await this.adapter.delObjectAsync(objectId, { recursive: true });
+            this.stateManager.forgetObjects(objectId);
         }
     }
 
